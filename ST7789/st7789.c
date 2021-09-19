@@ -715,7 +715,7 @@ static uint32_t draw_time=0;
 static void printTime(void){
   char str[8];
   sprintf(str,"%lums",HAL_GetTick()-draw_time);
-  ST7789_WriteString(160, 120, str, Font_11x18, RED, WHITE);
+  ST7789_WriteString(160, 120, str, Font_11x18, WHITE, BLACK);
 }
 /** 
  * @brief A Simple test function for ST7789
@@ -725,7 +725,7 @@ static void printTime(void){
 void ST7789_Test(void)
 {
   ST7789_Fill_Color(WHITE);
-  ST7789_WriteString(10, 20, "Filling Test", Font_11x18, RED, WHITE);
+  ST7789_WriteString(10, 20, "Fill Test starting", Font_11x18, RED, WHITE);
   HAL_Delay(1000);
   uint8_t r=0,g=0,b=0;
   for(r=0; r<32;r++){
@@ -766,7 +766,8 @@ void ST7789_Test(void)
   draw_time=HAL_GetTick();
   ST7789_Fill_Color(WHITE);
   printTime();
-  HAL_Delay(1000);
+  ST7789_WriteString(10, 20, "Fill Test", Font_11x18, RED, WHITE);
+  HAL_Delay(2000);
 
   ST7789_Fill_Color(GRAY);
   draw_time=HAL_GetTick();
@@ -775,7 +776,7 @@ void ST7789_Test(void)
   ST7789_WriteString(10, 75, "Hello Steve!", Font_11x18, YELLOW, GRAY);
   ST7789_WriteString(10, 100, "Hello Steve!", Font_11x18, MAGENTA, GRAY);
   printTime();
-  HAL_Delay(1000);
+  HAL_Delay(2000);
 
   ST7789_Fill_Color(RED);
   ST7789_WriteString(10, 10, "Rect./Line.", Font_11x18, YELLOW, RED);
@@ -800,7 +801,7 @@ void ST7789_Test(void)
   HAL_Delay(1000);
 
   ST7789_Fill_Color(RED);
-  ST7789_WriteString(10, 10, "Filled Cir.", Font_11x18, YELLOW, RED);
+  ST7789_WriteString(10, 10, "Filled Circle.", Font_11x18, YELLOW, RED);
   draw_time=HAL_GetTick();
   ST7789_DrawFilledCircle(60, 60, 25, WHITE);
   printTime();
@@ -808,7 +809,7 @@ void ST7789_Test(void)
   HAL_Delay(1000);
 
   ST7789_Fill_Color(RED);
-  ST7789_WriteString(10, 10, "Triangle", Font_11x18, YELLOW, RED);
+  ST7789_WriteString(10, 10, "Triangle.", Font_11x18, YELLOW, RED);
   draw_time=HAL_GetTick();
   ST7789_DrawTriangle(30, 30, 30, 70, 60, 40, WHITE);
   printTime();
@@ -816,7 +817,7 @@ void ST7789_Test(void)
 
   ST7789_Fill_Color(RED);
   draw_time=HAL_GetTick();
-  ST7789_WriteString(10, 10, "Filled Tri", Font_11x18, YELLOW, RED);
+  ST7789_WriteString(10, 10, "Filled Triangle.", Font_11x18, YELLOW, RED);
   ST7789_DrawFilledTriangle(30, 30, 30, 70, 60, 40, WHITE);
   printTime();
   HAL_Delay(1000);
