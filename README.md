@@ -7,6 +7,7 @@ Everything has been optimized, font drawing is also a lot better due pixel packi
 then draw them in a single operation, thus removing a lot of overhead.<br>
 The projects works right away, use STM32 CUBE IDE (Import... Exiting project... Select any of the demos).<br>
 Tested on STM32F103 and STM32F411, using a 135x240 4-wire SPI screen.<br>
+It can achieve 60FPS with 32MHZ SPI clock.<br>
 
 Configuration is done in st7780.h<br>
 
