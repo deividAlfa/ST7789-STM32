@@ -12,5 +12,5 @@ It can achieve 60FPS with 32MHZ SPI clock.<br>
 Configuration is done in st7780.h<br>
 
 For more information, check the [Original ST7789 project](https://github.com/Floyd-Fish/ST7789-STM32) and [uGUI](https://github.com/achimdoebler/UGUI) page.<br>
-To convert fonts, use [ttf2uGUI](https://github.com/AriZuu/ttf2ugui).<br>
+To convert fonts, use [ttf2uGUI](https://github.com/AriZuu/ttf2ugui). I've compiled it for windows (ttf2ugui-win.zip).<br>
 Bitmaps can be converted with[Lcd image converter](https://sourceforge.net/projects/lcd-image-converter/), use 16 bit packing, Little endian.<br>
