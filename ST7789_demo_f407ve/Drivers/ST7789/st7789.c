@@ -2,6 +2,8 @@
 #include "stdio.h"
 #include "stdint.h"
 
+UG_GUI gui;
+static int8_t currentSPISize=-1;
 #define mode_16bit    1
 #define mode_8bit     0
 /*
@@ -9,46 +11,55 @@
  * @param none
  * @return none
  */
-static void setSPI_Size(uint8_t is16Bit){
-  if(is16Bit){
-    ST7789_SPI_PORT.Init.DataSize = SPI_DATASIZE_16BIT;
+static void setSPI_Size(int8_t size){
+  if(currentSPISize!=size){
+    currentSPISize=size;
+    if(size==mode_16bit){
+      ST7789_SPI_PORT.Init.DataSize = SPI_DATASIZE_16BIT;
+    }
+    else{
+      ST7789_SPI_PORT.Init.DataSize = SPI_DATASIZE_8BIT;
+    }
+    HAL_SPI_Init(&ST7789_SPI_PORT);
   }
-  else{
-    ST7789_SPI_PORT.Init.DataSize = SPI_DATASIZE_8BIT;
-  }
-  HAL_SPI_Init(&ST7789_SPI_PORT);
 }
 
 #ifdef USE_DMA
 #define DMA_min_Sz    16
 #define mem_increase  1
 #define mem_fixed     0
+
+static int8_t currentDMASize=-1;
+static int8_t currentMemInc=-1;
 /**
  * @brief Configures DMA/ SPI interface
  * @param memInc Enable/disable memory address increase
  * @param mode16 Enable/disable 16 bit mode (disabled = 8 bit)
  * @return none
  */
-static void setDMAMemMode(uint8_t memInc, uint8_t is16Bit){
+static void setDMAMemMode(uint8_t memInc, uint8_t size){
 
-  setSPI_Size(is16Bit);
-
-  __HAL_DMA_DISABLE(ST7789_SPI_PORT.hdmatx);
-  if(memInc){
-    ST7789_SPI_PORT.hdmatx->Init.MemInc = DMA_MINC_ENABLE;
+  setSPI_Size(size);
+  if(currentDMASize!=size || currentMemInc!=memInc){
+    currentDMASize=size;
+    currentMemInc=memInc;
+    __HAL_DMA_DISABLE(ST7789_SPI_PORT.hdmatx);
+    if(memInc==mem_increase){
+      ST7789_SPI_PORT.hdmatx->Init.MemInc = DMA_MINC_ENABLE;
+    }
+    else{
+      ST7789_SPI_PORT.hdmatx->Init.MemInc = DMA_MINC_DISABLE;
+    }
+    if(size==mode_16bit){
+      ST7789_SPI_PORT.hdmatx->Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+      ST7789_SPI_PORT.hdmatx->Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+    }
+    else{
+      ST7789_SPI_PORT.hdmatx->Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+      ST7789_SPI_PORT.hdmatx->Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+    }
+    HAL_DMA_Init(ST7789_SPI_PORT.hdmatx);
   }
-  else{
-    ST7789_SPI_PORT.hdmatx->Init.MemInc = DMA_MINC_DISABLE;
-  }
-  if(is16Bit){
-    ST7789_SPI_PORT.hdmatx->Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-    ST7789_SPI_PORT.hdmatx->Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
-  }
-  else{
-    ST7789_SPI_PORT.hdmatx->Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-    ST7789_SPI_PORT.hdmatx->Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-  }
-  HAL_DMA_Init(ST7789_SPI_PORT.hdmatx);
 }
 #endif
 
@@ -59,6 +70,7 @@ static void setDMAMemMode(uint8_t memInc, uint8_t is16Bit){
  */
 static void ST7789_WriteCommand(uint8_t cmd)
 {
+  setSPI_Size(mode_8bit);
   ST7789_Select();
   ST7789_DC_Clr();
   HAL_SPI_Transmit(&ST7789_SPI_PORT, &cmd, sizeof(cmd), HAL_MAX_DELAY);
@@ -106,6 +118,7 @@ static void ST7789_WriteData(uint8_t *buff, size_t buff_size)
  */
 static void ST7789_WriteSmallData(uint8_t data)
 {
+  setSPI_Size(mode_8bit);
   ST7789_Select();
   ST7789_DC_Set();
   HAL_SPI_Transmit(&ST7789_SPI_PORT, &data, sizeof(data), HAL_MAX_DELAY);
@@ -138,15 +151,16 @@ void ST7789_SetRotation(uint8_t m)
   }
 }
 
+
 /**
  * @brief Set address of DisplayWindow
  * @param xi&yi -> coordinates of window
  * @return none
  */
-static void ST7789_SetAddressWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
+static void ST7789_SetAddressWindow(int16_t x0, int16_t y0, int16_t x1, int16_t y1)
 {
-  uint16_t x_start = x0 + X_SHIFT, x_end = x1 + X_SHIFT;
-  uint16_t y_start = y0 + Y_SHIFT, y_end = y1 + Y_SHIFT;
+  int16_t x_start = x0 + X_SHIFT, x_end = x1 + X_SHIFT;
+  int16_t y_start = y0 + Y_SHIFT, y_end = y1 + Y_SHIFT;
 
   /* Column Address set */
   ST7789_WriteCommand(ST7789_CASET);
@@ -166,18 +180,213 @@ static void ST7789_SetAddressWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint1
 }
 
 /**
+ * @brief Draw a raw Pixel, wherever the cursor is at.
+ * @param x&y -> coordinate to Draw
+ * @param color -> color of the Pixel
+ * @return none
+ */
+void ST7789_DrawRawPixel(uint16_t color)
+{
+  //uint8_t data[2] = {color >> 8, color & 0xFF};
+  ST7789_Select();
+  HAL_SPI_Transmit(&ST7789_SPI_PORT, (uint8_t*)&color, 1, HAL_MAX_DELAY);
+  ST7789_UnSelect();
+}
+
+/**
+ * @brief Set address of DisplayWindow and returns raw pixel draw for uGUI driver acceleration
+ * @param xi&yi -> coordinates of window
+ * @return none
+ */
+
+void(*ST7789_FillArea(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1))(uint16_t){
+  ST7789_SetAddressWindow(x0,y0,x1,y1);
+  setSPI_Size(mode_16bit);                                                          // Set SPI to 16 bit
+  ST7789_DC_Set();
+  return ST7789_DrawRawPixel;
+}
+
+
+/**
+ * @brief Address and draw a Pixel
+ * @param x&y -> coordinate to Draw
+ * @param color -> color of the Pixel
+ * @return none
+ */
+void ST7789_DrawPixel(uint16_t x, uint16_t y, uint16_t color)
+{
+  if ((x < 0) || (x >= ST7789_WIDTH) ||
+     (y < 0) || (y >= ST7789_HEIGHT)) return;
+
+  uint8_t data[2] = {color >> 8, color & 0xFF};
+
+  ST7789_SetAddressWindow(x, y, x, y);
+
+  ST7789_DC_Set();
+  ST7789_Select();
+
+  HAL_SPI_Transmit(&ST7789_SPI_PORT, data, sizeof(data), HAL_MAX_DELAY);
+  ST7789_UnSelect();
+}
+
+void ST7789_FillPixels(uint16_t pixels, uint16_t color){
+#ifdef USE_DMA
+  if(DMA_min_Sz<=pixels){
+    setDMAMemMode(mem_fixed, mode_16bit);                                             // Set SPI and DMA to 16 bit, enable memory increase
+    ST7789_WriteData((uint8_t*)&color, pixels);
+  }
+  else{
+  #endif
+    setSPI_Size(mode_16bit);                                                          // Set SPI to 16 bit
+    uint16_t fill[64];                                                                // Use a 64 pixel (128Byte) buffer for faster filling
+    uint8_t blockSz;
+
+    if(pixels<64){                                                                    // Adjust block size
+      blockSz=pixels;
+    }
+    else{
+      blockSz=64;
+    }
+    for(uint8_t t=0;t<blockSz;t++){                                                   // Fill the buffer with the color
+      fill[t]=color;
+    }
+    while(pixels>=blockSz){                                                           // Send 64 pixel blocks
+      ST7789_WriteData((uint8_t*)&fill, blockSz);
+      pixels-=blockSz;
+    }
+    if(pixels){                                                                       // Send remaining pixels
+      ST7789_WriteData((uint8_t*)&fill, pixels);
+    }
+  #ifdef USE_DMA
+  }
+  #endif
+}
+/**
+ * @brief Fill an Area with single color
+ * @param xSta&ySta -> coordinate of the start point
+ * @param xEnd&yEnd -> coordinate of the end point
+ * @param color -> color to Fill with
+ * @return none
+ */
+int8_t ST7789_Fill(uint16_t xSta, uint16_t ySta, uint16_t xEnd, uint16_t yEnd, uint16_t color)
+{
+  uint16_t pixels = (xEnd-xSta+1)*(yEnd-ySta+1);
+  ST7789_SetAddressWindow(xSta, ySta, xEnd, yEnd);
+  ST7789_FillPixels(pixels, color);
+  return UG_RESULT_OK;
+}
+
+
+/**
+ * @brief Draw an Image on the screen
+ * @param x&y -> start point of the Image
+ * @param w&h -> width & height of the Image to Draw
+ * @param data -> pointer of the Image array
+ * @return none
+ */
+void ST7789_DrawImage(uint16_t x, uint16_t y, uint16_t w, uint16_t h, void* data)
+{
+  if ((x >= ST7789_WIDTH) || (y >= ST7789_HEIGHT))
+    return;
+  if ((x + w - 1) >= ST7789_WIDTH)
+    return;
+  if ((y + h - 1) >= ST7789_HEIGHT)
+    return;
+
+  ST7789_SetAddressWindow(x, y, x + w - 1, y + h - 1);
+
+  #ifdef USE_DMA
+  setDMAMemMode(mem_increase, mode_16bit);                                                            // Set SPI and DMA to 16 bit, enable memory increase
+  #else
+  setSPI_Size(mode_16bit);                                                                            // Set SPI to 16 bit
+  #endif
+  ST7789_WriteData((uint8_t*)data, w*h);
+  }
+
+/**
+ * @brief Accelerated line draw using filling (Only for vertical/horizontal lines)
+ * @param x1&y1 -> coordinate of the start point
+ * @param x2&y2 -> coordinate of the end point
+ * @param color -> color of the line to Draw
+ * @return none
+ */
+int8_t ST7789_DrawLine(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t color) {
+
+  if(x0==x1){                                   // If horizontal
+    if(y1<y0){
+      int16_t temp = y0;
+      y0=y1;
+      y1=temp;
+    }
+  }
+  else if(y0==y1){                              // If vertical
+    if(x1<x0){
+      int16_t temp = x0;
+      x0=x1;
+      x1=temp;
+    }
+  }
+  else{                                         // Else, return fail, draw using software
+    return UG_RESULT_FAIL;
+  }
+
+  ST7789_Fill(x0,y0,x1,y1,color);               // Draw using acceleration
+  return UG_RESULT_OK;
+}
+void ST7789_PutChar(uint16_t x, uint16_t y, char ch, const UG_FONT* font, uint16_t color, uint16_t bgcolor){
+  UG_FontSelect(font);
+  UG_PutChar(ch, x, y, color, bgcolor);
+}
+
+void ST7789_PutStr(uint16_t x, uint16_t y,  char *str, const UG_FONT* font, uint16_t color, uint16_t bgcolor){
+  UG_FontSelect(font);
+  UG_SetForecolor(color);
+  UG_SetBackcolor(bgcolor);
+  UG_PutString(x, y, str);
+}
+/**
+ * @brief Invert Fullscreen color
+ * @param invert -> Whether to invert
+ * @return none
+ */
+void ST7789_InvertColors(uint8_t invert)
+{
+  ST7789_WriteCommand(invert ? 0x21 /* INVON */ : 0x20 /* INVOFF */);
+}
+
+/*
+ * @brief Open/Close tearing effect line
+ * @param tear -> Whether to tear
+ * @return none
+ */
+void ST7789_TearEffect(uint8_t tear)
+{
+  ST7789_Select();
+  ST7789_WriteCommand(tear ? 0x35 /* TEON */ : 0x34 /* TEOFF */);
+  ST7789_UnSelect();
+}
+
+/**
  * @brief Initialize ST7789 controller
  * @param none
  * @return none
  */
 void ST7789_Init(void)
 {
-  setSPI_Size(mode_8bit);
   ST7789_UnSelect();
   ST7789_RST_Clr();
   HAL_Delay(1);
   ST7789_RST_Set();
   HAL_Delay(120);
+
+  UG_Init(&gui, &ST7789_DrawPixel, &ST7789_FillPixels, ST7789_WIDTH, ST7789_HEIGHT);
+  UG_DriverRegister(DRIVER_DRAW_LINE, ST7789_DrawLine);
+  UG_DriverRegister(DRIVER_FILL_FRAME, ST7789_Fill);
+  UG_DriverRegister(DRIVER_FILL_AREA, ST7789_FillArea);
+  UG_DriverRegister(DRIVER_DRAW_BMP, ST7789_DrawImage);
+  UG_FontSetHSpace(0);
+  UG_FontSetVSpace(0);
+  //UG_FontSetTransparency(1);
 
   ST7789_WriteCommand(ST7789_COLMOD);   //  Set color mode
   ST7789_WriteSmallData(ST7789_COLOR_MODE_16bit);
@@ -225,607 +434,248 @@ void ST7789_Init(void)
   ST7789_WriteCommand (ST7789_SLPOUT);  //  Out of sleep mode
   ST7789_WriteCommand (ST7789_NORON);   //  Normal Display on
 
-  ST7789_Fill_Color(GREEN);             //  Fill
+  UG_FillScreen(C_BLACK);             //  Fill
   ST7789_WriteCommand (ST7789_DISPON);  //  Main screen turned on
 
-  HAL_Delay(500);
 }
 
-
-
-/**
- * @brief Draw a Pixel
- * @param x&y -> coordinate to Draw
- * @param color -> color of the Pixel
- * @return none
- */
-void ST7789_DrawPixel(uint16_t x, uint16_t y, uint16_t color)
-{
-  if ((x < 0) || (x >= ST7789_WIDTH) ||
-     (y < 0) || (y >= ST7789_HEIGHT)) return;
-
-  uint8_t data[2] = {color >> 8, color & 0xFF};
-
-  ST7789_SetAddressWindow(x, y, x, y);
-
-  ST7789_DC_Set();
-  ST7789_Select();
-
-  HAL_SPI_Transmit(&ST7789_SPI_PORT, data, sizeof(data), HAL_MAX_DELAY);
-  ST7789_UnSelect();
-}
-
-/**
- * @brief Fill an Area with single color
- * @param xSta&ySta -> coordinate of the start point
- * @param xEnd&yEnd -> coordinate of the end point
- * @param color -> color to Fill with
- * @return none
- */
-void ST7789_Fill(uint16_t xSta, uint16_t ySta, uint16_t xEnd, uint16_t yEnd, uint16_t color)
-{
-  uint16_t pixels = (xEnd-xSta+1)*(yEnd-ySta+1);
-  if ((xEnd < 0) || (xEnd >= ST7789_WIDTH) ||
-     (yEnd < 0) || (yEnd >= ST7789_HEIGHT)) return;
-
-  ST7789_SetAddressWindow(xSta, ySta, xEnd, yEnd);
-
-  #ifdef USE_DMA
-  if(DMA_min_Sz<=pixels){
-    setDMAMemMode(mem_fixed, mode_16bit);                                             // Set SPI and DMA to 16 bit, enable memory increase
-    ST7789_WriteData((uint8_t*)&color, pixels);
-  }
-  else{
-  #endif
-    setSPI_Size(mode_16bit);                                                          // Set SPI to 16 bit
-    uint16_t fill[64];                                                                // Use a 64 pixel (128Byte) buffer for faster filling
-    uint8_t blockSz;
-
-    if(pixels<64){                                                                    // Adjust block size
-      blockSz=pixels;
-    }
-    else{
-      blockSz=64;
-    }
-    for(uint8_t t=0;t<blockSz;t++){                                                   // Fill the buffer with the color
-      fill[t]=color;
-    }
-    while(pixels>=blockSz){                                                           // Send 64 pixel blocks
-      ST7789_WriteData((uint8_t*)&fill, blockSz);
-      pixels-=blockSz;
-    }
-    if(pixels){                                                                       // Send remaining pixels
-      ST7789_WriteData((uint8_t*)&fill, pixels);
-    }
-  #ifdef USE_DMA
-  }
-  #endif
-  setSPI_Size(mode_8bit);                                                           // Set SPI to 8 bit
-}
-
-
-/**
- * @brief Draw an Image on the screen
- * @param x&y -> start point of the Image
- * @param w&h -> width & height of the Image to Draw
- * @param data -> pointer of the Image array
- * @return none
- */
-void ST7789_DrawImage(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *data)
-{
-  if ((x >= ST7789_WIDTH) || (y >= ST7789_HEIGHT))
-    return;
-  if ((x + w - 1) >= ST7789_WIDTH)
-    return;
-  if ((y + h - 1) >= ST7789_HEIGHT)
-    return;
-
-  ST7789_SetAddressWindow(x, y, x + w - 1, y + h - 1);
-
-  #ifdef USE_DMA
-  setDMAMemMode(mem_increase, mode_16bit);                                                            // Set SPI and DMA to 16 bit, enable memory increase
-  #else
-  setSPI_Size(mode_16bit);                                                                            // Set SPI to 16 bit
-  #endif
-  ST7789_WriteData((uint8_t*)data, w*h);
-  setSPI_Size(mode_8bit);                                                                             // Set SPI to 8 bit
-  }
-
-/**
- * @brief Draw a big Pixel at a point
- * @param x&y -> coordinate of the point
- * @param color -> color of the Pixel
- * @return none
- */
-void ST7789_DrawPixel_4px(uint16_t x, uint16_t y, uint16_t color)
-{
-  if ((x <= 0) || (x > ST7789_WIDTH) ||
-     (y <= 0) || (y > ST7789_HEIGHT)) return;
-  ST7789_Select();
-  ST7789_Fill(x - 1, y - 1, x + 1, y + 1, color);
-  ST7789_UnSelect();
-}
-
-
-/**
- * @brief Draw horizontal line with single color
- * @param x0&x1 -> start/end position of X
- * @param y -> coordinate of the y position
- * @param color -> color of the line to Draw
- * @return none
- */
-
-void ST7789_DrawHLine(uint16_t x0, uint16_t x1, uint16_t y, uint16_t color) {
-  if(x1<x0){
-    uint16_t temp = x0;
-    x0=x1;
-    x1=temp;
-  }
-  ST7789_Fill(x0,y,x1,y,color);
-}
-
-/**
- * @brief Draw vertical line with single color
- * @param x -> coordinate of the x position
- * @param y0&y1 -> start/end position of Y
- * @param color -> color of the line to Draw
- * @return none
- */
-void ST7789_DrawVLine(uint16_t x, uint16_t y0, uint16_t y1, uint16_t color) {
-  if(y1<y0){
-    uint16_t temp = y0;
-    y0=y1;
-    y1=temp;
-  }
-  ST7789_Fill(x,y0,x,y1,color);
-}
-
-/**
- * @brief Draw a line with single color
- * @param x1&y1 -> coordinate of the start point
- * @param x2&y2 -> coordinate of the end point
- * @param color -> color of the line to Draw
- * @return none
- */
-void ST7789_DrawLine(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t color) {
-  uint16_t swap;
-  if(x0==x1){
-    ST7789_DrawVLine(x0, y0, y1, color);
-    return;
-  }
-  else if(y0==y1){
-    ST7789_DrawHLine(x0, x1, y0, color);
-    return;
-  }
-  uint16_t steep = ABS(y1 - y0) > ABS(x1 - x0);
-  if (steep) {
-    swap = x0;
-    x0 = y0;
-    y0 = swap;
-
-    swap = x1;
-    x1 = y1;
-    y1 = swap;
-  }
-
-  if (x0 > x1) {
-    swap = x0;
-    x0 = x1;
-    x1 = swap;
-
-    swap = y0;
-    y0 = y1;
-    y1 = swap;
-  }
-
-  int16_t dx, dy;
-  dx = x1 - x0;
-  dy = ABS(y1 - y0);
-
-  int16_t err = dx / 2;
-  int16_t ystep;
-
-  if (y0 < y1) {
-      ystep = 1;
-  } else {
-      ystep = -1;
-  }
-
-  for (; x0<=x1; x0++) {
-      if (steep) {
-          ST7789_DrawPixel(y0, x0, color);
-      } else {
-          ST7789_DrawPixel(x0, y0, color);
-      }
-      err -= dy;
-      if (err < 0) {
-          y0 += ystep;
-          err += dx;
-      }
-  }
-}
-
-/**
- * @brief Draw a Rectangle with single color
- * @param xi&yi -> 2 coordinates of 2 top points.
- * @param color -> color of the Rectangle line
- * @return none
- */
-void ST7789_DrawRectangle(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color)
-{
-  ST7789_DrawHLine(x1, x2, y1, color);
-  ST7789_DrawHLine(x1, x2, y2, color);
-
-  ST7789_DrawVLine(x1, y1, y2, color);
-  ST7789_DrawVLine(x2, y1, y2, color);
-}
-
-/** 
- * @brief Draw a circle with single color
- * @param x0&y0 -> coordinate of circle center
- * @param r -> radius of circle
- * @param color -> color of circle line
- * @return  none
- */
-void ST7789_DrawCircle(uint16_t x0, uint16_t y0, uint8_t r, uint16_t color)
-{
-  int16_t f = 1 - r;
-  int16_t ddF_x = 1;
-  int16_t ddF_y = -2 * r;
-  int16_t x = 0;
-  int16_t y = r;
-
-  ST7789_DrawPixel(x0, y0 + r, color);
-  ST7789_DrawPixel(x0, y0 - r, color);
-  ST7789_DrawPixel(x0 + r, y0, color);
-  ST7789_DrawPixel(x0 - r, y0, color);
-
-  while (x < y) {
-    if (f >= 0) {
-      y--;
-      ddF_y += 2;
-      f += ddF_y;
-    }
-    x++;
-    ddF_x += 2;
-    f += ddF_x;
-
-    ST7789_DrawPixel(x0 + x, y0 + y, color);
-    ST7789_DrawPixel(x0 - x, y0 + y, color);
-    ST7789_DrawPixel(x0 + x, y0 - y, color);
-    ST7789_DrawPixel(x0 - x, y0 - y, color);
-
-    ST7789_DrawPixel(x0 + y, y0 + x, color);
-    ST7789_DrawPixel(x0 - y, y0 + x, color);
-    ST7789_DrawPixel(x0 + y, y0 - x, color);
-    ST7789_DrawPixel(x0 - y, y0 - x, color);
-  }
-}
-
-
-/**
- * @brief Invert Fullscreen color
- * @param invert -> Whether to invert
- * @return none
- */
-void ST7789_InvertColors(uint8_t invert)
-{
-  ST7789_WriteCommand(invert ? 0x21 /* INVON */ : 0x20 /* INVOFF */);
-}
-
-/** 
- * @brief Write a char
- * @param  x&y -> cursor of the start point.
- * @param ch -> char to write
- * @param font -> fontstyle of the string
- * @param color -> color of the char
- * @param bgcolor -> background color of the char
- * @return  none
- */
-void ST7789_WriteChar(uint16_t x, uint16_t y, char ch, FontDef font, uint16_t color, uint16_t bgcolor)
-{
-  uint32_t i, b, j;
-
-  uint8_t foreColor[2] = {color >> 8, color & 0xFF};
-  uint8_t bgColor[2] = {bgcolor >> 8, bgcolor & 0xFF};
-
-  ST7789_SetAddressWindow(x, y, x + font.width - 1, y + font.height - 1);
-
-  ST7789_Select();
-  ST7789_DC_Set();
-
-  for (i = 0; i < font.height; i++) {
-    b = font.data[(ch - 32) * font.height + i];
-    for (j = 0; j < font.width; j++) {
-      if ((b << j) & 0x8000) {
-        HAL_SPI_Transmit(&ST7789_SPI_PORT, foreColor, 2, HAL_MAX_DELAY);
-      }
-      else {
-        HAL_SPI_Transmit(&ST7789_SPI_PORT, bgColor, 2, HAL_MAX_DELAY);
-      }
-    }
-  }
-  ST7789_UnSelect();
-}
-
-/** 
- * @brief Write a string 
- * @param  x&y -> cursor of the start point.
- * @param str -> string to write
- * @param font -> fontstyle of the string
- * @param color -> color of the string
- * @param bgcolor -> background color of the string
- * @return  none
- */
-void ST7789_WriteString(uint16_t x, uint16_t y, const char *str, FontDef font, uint16_t color, uint16_t bgcolor)
-{
-  while (*str) {
-    if (x + font.width >= ST7789_WIDTH) {
-      x = 0;
-      y += font.height;
-      if (y + font.height >= ST7789_HEIGHT) {
-        break;
-      }
-
-      if (*str == ' ') {
-        // skip spaces in the beginning of the new line
-        str++;
-        continue;
-      }
-    }
-    ST7789_WriteChar(x, y, *str, font, color, bgcolor);
-    x += font.width;
-    str++;
-  }
-}
-
-
-/** 
- * @brief Draw a Triangle with single color
- * @param  xi&yi -> 3 coordinates of 3 top points.
- * @param color ->color of the lines
- * @return  none
- */
-void ST7789_DrawTriangle(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t x3, uint16_t y3, uint16_t color)
-{
-  /* Draw lines */
-  ST7789_DrawLine(x1, y1, x2, y2, color);
-  ST7789_DrawLine(x2, y2, x3, y3, color);
-  ST7789_DrawLine(x3, y3, x1, y1, color);
-}
-
-/** 
- * @brief Draw a filled Triangle with single color
- * @param  xi&yi -> 3 coordinates of 3 top points.
- * @param color ->color of the triangle
- * @return  none
- */
-void ST7789_DrawFilledTriangle(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t x3, uint16_t y3, uint16_t color)
-{
-  int16_t deltax = 0, deltay = 0, x = 0, y = 0, xinc1 = 0, xinc2 = 0,
-      yinc1 = 0, yinc2 = 0, den = 0, num = 0, numadd = 0, numpixels = 0,
-      curpixel = 0;
-
-  deltax = ABS(x2 - x1);
-  deltay = ABS(y2 - y1);
-  x = x1;
-  y = y1;
-
-  if (x2 >= x1) {
-    xinc1 = 1;
-    xinc2 = 1;
-  }
-  else {
-    xinc1 = -1;
-    xinc2 = -1;
-  }
-
-  if (y2 >= y1) {
-    yinc1 = 1;
-    yinc2 = 1;
-  }
-  else {
-    yinc1 = -1;
-    yinc2 = -1;
-  }
-
-  if (deltax >= deltay) {
-    xinc1 = 0;
-    yinc2 = 0;
-    den = deltax;
-    num = deltax / 2;
-    numadd = deltay;
-    numpixels = deltax;
-  }
-  else {
-    xinc2 = 0;
-    yinc1 = 0;
-    den = deltay;
-    num = deltay / 2;
-    numadd = deltax;
-    numpixels = deltay;
-  }
-
-  for (curpixel = 0; curpixel <= numpixels; curpixel++) {
-    ST7789_DrawLine(x, y, x3, y3, color);
-
-    num += numadd;
-    if (num >= den) {
-      num -= den;
-      x += xinc1;
-      y += yinc1;
-    }
-    x += xinc2;
-    y += yinc2;
-  }
-}
-
-/** 
- * @brief Draw a Filled circle with single color
- * @param x0&y0 -> coordinate of circle center
- * @param r -> radius of circle
- * @param color -> color of circle
- * @return  none
- */
-void ST7789_DrawFilledCircle(int16_t x0, int16_t y0, int16_t r, uint16_t color)
-{
-  ST7789_Select();
-  int16_t f = 1 - r;
-  int16_t ddF_x = 1;
-  int16_t ddF_y = -2 * r;
-  int16_t x = 0;
-  int16_t y = r;
-  ST7789_DrawPixel(x0, y0 + r, color);
-  ST7789_DrawPixel(x0, y0 - r, color);
-  ST7789_DrawPixel(x0 + r, y0, color);
-  ST7789_DrawPixel(x0 - r, y0, color);
-  ST7789_DrawHLine(x0 - r, x0 + r, y0, color);
-
-  while (x < y) {
-    if (f >= 0) {
-      y--;
-      ddF_y += 2;
-      f += ddF_y;
-    }
-    x++;
-    ddF_x += 2;
-    f += ddF_x;
-
-    ST7789_DrawHLine(x0 - x, x0 + x, y0 + y, color);
-    ST7789_DrawHLine(x0 + x, x0 - x, y0 - y, color);
-    ST7789_DrawHLine(x0 + y, x0 - y, y0 + x, color);
-    ST7789_DrawHLine(x0 + y, x0 - y, y0 - x, color);
-  }
-}
-
-
-/**
- * @brief Open/Close tearing effect line
- * @param tear -> Whether to tear
- * @return none
- */
-void ST7789_TearEffect(uint8_t tear)
-{
-  ST7789_Select();
-  ST7789_WriteCommand(tear ? 0x35 /* TEON */ : 0x34 /* TEOFF */);
-  ST7789_UnSelect();
-}
 
 static uint32_t draw_time=0;
 static void printTime(void){
   char str[8];
   sprintf(str,"%lums",HAL_GetTick()-draw_time);
-  ST7789_WriteString(160, 120, str, Font_11x18, WHITE, BLACK);
+  UG_FontSelect(&FONT_12X16);
+  UG_SetForecolor(C_WHITE);
+  UG_SetBackcolor(C_BLACK);
+  UG_PutString(160, 119, str);
 }
+
 /** 
  * @brief A Simple test function for ST7789
  * @param  none
  * @return  none
  */
+
+void window_1_callback(UG_MESSAGE *msg);
 void ST7789_Test(void)
 {
-  ST7789_Fill_Color(WHITE);
-  ST7789_WriteString(10, 20, "Fill Test starting", Font_11x18, RED, WHITE);
+  UG_FillScreen(C_WHITE);
+  ST7789_PutStr(10, 10, "Starting Test", &FONT_12X16, C_RED, C_WHITE);
+
   HAL_Delay(1000);
   uint8_t r=0,g=0,b=0;
-  for(r=0; r<32;r++){
-    ST7789_Fill_Color((uint16_t)r<<11 | g<<5 | b);          // R++, G=0, B=0
+  for(r=0; r<32;r++){                                       // R++, G=0, B=0
+    UG_FillScreen((uint16_t)r<<11 | g<<5 | b);
   }
   r=31;
-  for(g=0; g<64;g+=2){
-    ST7789_Fill_Color((uint16_t)r<<11 | g<<5 | b);          // R=31, G++, B=0
+  for(g=0; g<64;g+=2){                                      // R=31, G++, B=0
+    UG_FillScreen((uint16_t)r<<11 | g<<5 | b);
   }
   g=63;
-  for(r=28; r;r--){
-    ST7789_Fill_Color((uint16_t)r<<11 | g<<5 | b);          // R--, Gmax, B=0
+  for(r=28; r;r--){                                         // R--, Gmax, B=0
+    UG_FillScreen((uint16_t)r<<11 | g<<5 | b);
   }
-  for(b=0; b<32;b++){
-    ST7789_Fill_Color((uint16_t)r<<11 | g<<5 | b);          // R=0, Gmax, B++
+  for(b=0; b<32;b++){                                       // R=0, Gmax, B++
+    UG_FillScreen((uint16_t)r<<11 | g<<5 | b);
   }
   b=31;
-  for(g=56; g;g-=2){
-    ST7789_Fill_Color((uint16_t)r<<11 | g<<5 | b);          // R=0, G--, Bmax
+  for(g=56; g;g-=2){                                        // R=0, G--, Bmax
+    UG_FillScreen((uint16_t)r<<11 | g<<5 | b);
   }
-  for(r=0; r<32;r++){
-    ST7789_Fill_Color((uint16_t)r<<11 | g<<5 | b);          // R++, G=0, Bmax
+  for(r=0; r<32;r++){                                       // R++, G=0, Bmax
+    UG_FillScreen((uint16_t)r<<11 | g<<5 | b);
   }
   r=31;
-  for(g=0; g<64;g+=2){
-    ST7789_Fill_Color((uint16_t)r<<11 | g<<5 | b);          // Rmax, G++, Bmax
+  for(g=0; g<64;g+=2){                                      // Rmax, G++, Bmax
+    UG_FillScreen((uint16_t)r<<11 | g<<5 | b);
   }
 
 
-  ST7789_Fill_Color(RED);
+  UG_FillScreen(C_RED);
   HAL_Delay(500);
-  ST7789_Fill_Color(GREEN);
+  UG_FillScreen(C_GREEN);
   HAL_Delay(500);
-  ST7789_Fill_Color(BLUE);
+  UG_FillScreen(C_BLUE);
   HAL_Delay(500);
-  ST7789_Fill_Color(BLACK);
+  UG_FillScreen(C_BLACK);
   HAL_Delay(500);
   draw_time=HAL_GetTick();
-  ST7789_Fill_Color(WHITE);
+  UG_FillScreen(C_WHITE);
   printTime();
-  ST7789_WriteString(10, 20, "Fill Test", Font_11x18, RED, WHITE);
+
+
+  ST7789_PutStr(10, 10, "Fill Time", &FONT_12X16, C_RED, C_WHITE);
   HAL_Delay(2000);
 
-  ST7789_Fill_Color(GRAY);
+  UG_FillScreen(C_BLACK);
+  ST7789_PutStr(10, 10, "Font test.", &FONT_12X16, C_AZURE, C_BLACK);
   draw_time=HAL_GetTick();
-  ST7789_WriteString(10, 10, "Font test.", Font_11x18, GBLUE, GRAY);
-  ST7789_WriteString(10, 50, "Hello Steve!", Font_11x18, RED, GRAY);
-  ST7789_WriteString(10, 75, "Hello Steve!", Font_11x18, YELLOW, GRAY);
-  ST7789_WriteString(10, 100, "Hello Steve!", Font_11x18, MAGENTA, GRAY);
-  printTime();
-  HAL_Delay(2000);
-
-  ST7789_Fill_Color(RED);
-  ST7789_WriteString(10, 10, "Rect./Line.", Font_11x18, YELLOW, RED);
-  draw_time=HAL_GetTick();
-  ST7789_DrawRectangle(30, 30, 100, 100, WHITE);
-  printTime();
-  HAL_Delay(1000);
-
-  ST7789_Fill_Color(RED);
-  ST7789_WriteString(10, 10, "Filled Rect.", Font_11x18, YELLOW, RED);
-  draw_time=HAL_GetTick();
-  ST7789_DrawFilledRectangle(30, 30, 50, 50, WHITE);
-  printTime();
-  HAL_Delay(1000);
-
-
-  ST7789_Fill_Color(RED);
-  ST7789_WriteString(10, 10, "Circle.", Font_11x18, YELLOW, RED);
-  draw_time=HAL_GetTick();
-  ST7789_DrawCircle(60, 60, 25, WHITE);
-  printTime();
-  HAL_Delay(1000);
-
-  ST7789_Fill_Color(RED);
-  ST7789_WriteString(10, 10, "Filled Circle.", Font_11x18, YELLOW, RED);
-  draw_time=HAL_GetTick();
-  ST7789_DrawFilledCircle(60, 60, 25, WHITE);
-  printTime();
-  printTime();
-  HAL_Delay(1000);
-
-  ST7789_Fill_Color(RED);
-  ST7789_WriteString(10, 10, "Triangle.", Font_11x18, YELLOW, RED);
-  draw_time=HAL_GetTick();
-  ST7789_DrawTriangle(30, 30, 30, 70, 60, 40, WHITE);
-  printTime();
-  HAL_Delay(1000);
-
-  ST7789_Fill_Color(RED);
-  draw_time=HAL_GetTick();
-  ST7789_WriteString(10, 10, "Filled Triangle.", Font_11x18, YELLOW, RED);
-  ST7789_DrawFilledTriangle(30, 30, 30, 70, 60, 40, WHITE);
-  printTime();
-  HAL_Delay(1000);
-
-  //  If FLASH cannot storage anymore datas, please delete codes below.
-  ST7789_Fill_Color(WHITE);
-  draw_time=HAL_GetTick();
-  ST7789_DrawImage((ST7789_WIDTH-fry.width)/2, (ST7789_HEIGHT-fry.height)/2, fry.width, fry.height, fry.data);
+  ST7789_PutStr(10, 30, "Hello Steve!", &FONT_12X16, C_CYAN, C_BLACK);
+  ST7789_PutStr(10, 80, "Hello Steve!", &FONT_12X16, C_LIME_GREEN, C_BLACK);
+  ST7789_PutStr(10, 55, "Hello Steve!", &FONT_12X16, C_ORANGE_RED, C_BLACK);
+  ST7789_PutStr(10, 105, "Hello Steve!", &FONT_12X16, C_HOT_PINK, C_BLACK);
   printTime();
   HAL_Delay(3000);
+  UG_FillScreen(C_RED);
+  ST7789_PutStr(10, 10, "Line.", &FONT_12X16, C_YELLOW, C_RED);
+  draw_time=HAL_GetTick();
+  UG_DrawLine(30, 30, 30, 100, C_WHITE);
+  UG_DrawLine(30, 30, 100, 30, C_WHITE);
+  UG_DrawLine(30, 30, 100, 100, C_WHITE);
+  printTime();
+  HAL_Delay(1000);
+
+  UG_FillScreen(C_RED);
+  ST7789_PutStr(10, 10, "Rect.", &FONT_12X16, C_YELLOW, C_RED);
+  draw_time=HAL_GetTick();
+  UG_DrawFrame(30, 30, 100, 100, C_WHITE);
+  printTime();
+  HAL_Delay(1000);
+
+  UG_FillScreen(C_RED);
+  ST7789_PutStr(10, 10, "Filled Rect.", &FONT_12X16, C_YELLOW, C_RED);
+  draw_time=HAL_GetTick();
+  UG_FillFrame(30, 30, 100, 100, C_WHITE);
+  printTime();
+  HAL_Delay(1000);
+
+
+  UG_FillScreen(C_RED);
+  ST7789_PutStr(10, 10, "Circle.", &FONT_12X16, C_YELLOW, C_RED);
+  draw_time=HAL_GetTick();
+  UG_DrawCircle(65, 65, 35, C_WHITE);
+  printTime();
+  HAL_Delay(1000);
+
+  UG_FillScreen(C_RED);
+  ST7789_PutStr(10, 10, "Filled Cir.", &FONT_12X16, C_YELLOW, C_RED);
+  draw_time=HAL_GetTick();
+  UG_FillCircle(65, 65, 35, C_WHITE);
+  printTime();
+  HAL_Delay(1000);
+
+  UG_FillScreen(C_RED);
+  ST7789_PutStr(10, 10, "Triangle.", &FONT_12X16, C_YELLOW, C_RED);
+  draw_time=HAL_GetTick();
+  UG_DrawTriangle(30, 30, 120, 40, 60, 120, C_WHITE);
+  printTime();
+  HAL_Delay(1000);
+
+  UG_FillScreen(C_RED);
+  draw_time=HAL_GetTick();
+  ST7789_PutStr(10, 10, "Filled Tri.", &FONT_12X16, C_YELLOW, C_RED);
+  UG_FillTriangle(30, 30, 120, 40, 60, 120, C_WHITE);
+  printTime();
+  HAL_Delay(1000);
+
+  UG_FillScreen(C_RED);
+  ST7789_PutStr(10, 10, "Mesh.", &FONT_12X16, C_YELLOW, C_RED);
+  draw_time=HAL_GetTick();
+  UG_DrawMesh(30, 30, 100, 100, C_WHITE);
+  printTime();
+  HAL_Delay(1000);
+
+  UG_FillScreen(C_BLACK);
+
+  #define MAX_OBJECTS 2
+
+  UG_WINDOW window_1;
+  UG_BUTTON button_1;
+  UG_TEXTBOX textbox_1;
+  UG_OBJECT obj_buff_wnd_1[MAX_OBJECTS];
+
+  // Create the window
+  UG_WindowCreate(&window_1, obj_buff_wnd_1, MAX_OBJECTS, window_1_callback);
+  // Window Title
+  UG_WindowSetTitleText(&window_1, "Test Window");      //  \xhh : Special CHR the ASCII value is given by hh interpreted as a hexadecimal number (Check FONT Table)
+  UG_WindowSetTitleTextFont(&window_1, &FONT_12X16);
+  UG_WindowSetXStart(&window_1, 5);
+  UG_WindowSetYStart(&window_1, 5);
+  UG_WindowSetXEnd(&window_1, 230);       // Window 450x250
+  UG_WindowSetYEnd(&window_1, 130);
+
+  // Create Buttons
+  UG_ButtonCreate(&window_1, &button_1, BTN_ID_0, 10, 20, 120, 50);
+  //Label Buttons
+  UG_ButtonSetFont(&window_1,BTN_ID_0,&FONT_12X16);
+  UG_ButtonSetForeColor(&window_1,BTN_ID_0, C_BLACK);
+  UG_ButtonSetText(&window_1,BTN_ID_0,"Button");
+
+  // Create Textbox
+  UG_TextboxCreate(&window_1, &textbox_1, TXB_ID_0, 10, 60, 200, 100);
+  UG_TextboxSetFont(&window_1, TXB_ID_0, &FONT_12X16);
+  UG_TextboxSetText(&window_1, TXB_ID_0, "Some text");
+  UG_TextboxSetForeColor(&window_1, TXB_ID_0, C_BLACK);
+  UG_TextboxSetAlignment(&window_1, TXB_ID_0, ALIGN_CENTER);
+
+  UG_WindowShow(&window_1);
+  UG_Update();
+  HAL_Delay(3000);
+
+  //  If program doesn't fit in the FLASH, please disable this code:
+  //->>
+  UG_FillScreen(C_RED);
+  draw_time=HAL_GetTick();
+  UG_DrawBMP((ST7789_WIDTH-fry.width)/2, (ST7789_HEIGHT-fry.height)/2, &fry);
+  printTime();
+  UG_FontSetTransparency(1);
+  ST7789_PutStr(10, 10, "Image.", &FONT_12X16, C_YELLOW, C_RED);
+  UG_FontSetTransparency(0);
+  //<<-
+
+  HAL_Delay(3000);
 }
+
+
+void window_1_callback(UG_MESSAGE *msg)
+{
+/*
+    if(msg->type == MSG_TYPE_OBJECT)
+    {
+        if(msg->id == OBJ_TYPE_BUTTON)
+        {
+            if(msg->event == OBJ_EVENT_PRESSED)
+            {
+                switch(msg->sub_id)
+                {
+                    case BTN_ID_0:
+                    {
+                        LED4_Write(0);
+                        UG_ButtonHide(&window_1,BTN_ID_1);
+                        break;
+                    }
+                    case BTN_ID_1:
+                    {
+                        UG_TextboxSetText(&window_1, TXB_ID_0, "Pressed!");
+                        break;
+                    }
+                    case BTN_ID_2:
+                    {
+                        LED4_Write(1);
+                        UG_ButtonShow(&window_1,BTN_ID_1);
+                        break;
+                    }
+                    case BTN_ID_3:
+                    {
+                        UG_TextboxSetText(&window_1, TXB_ID_0, "Pressed!");
+                        LED4_Write(!LED4_Read());
+                        break;
+                    }
+                }
+            }
+            if(msg->event == OBJ_EVENT_RELEASED)
+            {
+                if(msg->sub_id == BTN_ID_1)
+                {
+                        UG_TextboxSetText(&window_1, TXB_ID_0, "This is a \n test sample window!");
+                }
+                if(msg->sub_id == BTN_ID_3)
+                {
+                        UG_TextboxSetText(&window_1, TXB_ID_0, "This is a \n test sample window!");
+                }
+            }
+        }
+    }
+*/
+}
+

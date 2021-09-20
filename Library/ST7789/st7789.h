@@ -1,11 +1,12 @@
 #ifndef __ST7789_H
 #define __ST7789_H
 
-#include "fonts.h"
+#include <images.h>
+#include "ugui.h"
 #include "main.h"
 
 /* choose a Hardware SPI port to use. */
-#define ST7789_SPI_PORT     hspi1
+#define ST7789_SPI_PORT     hspi2
 extern SPI_HandleTypeDef    ST7789_SPI_PORT;
 
 /* Pin connections */
@@ -101,28 +102,6 @@ extern SPI_HandleTypeDef    ST7789_SPI_PORT;
  *If you want to use another color, you can choose one in RGB565 format.
  */
 
-#define WHITE 0xFFFF
-#define BLACK 0x0000
-#define BLUE 0x001F
-#define RED 0xF800
-#define MAGENTA 0xF81F
-#define GREEN 0x07E0
-#define CYAN 0x7FFF
-#define YELLOW 0xFFE0
-#define GRAY 0X8430
-#define BRED 0XF81F
-#define GRED 0XFFE0
-#define GBLUE 0X07FF
-#define BROWN 0XBC40
-#define BRRED 0XFC07
-#define DARKBLUE 0X01CF
-#define LIGHTBLUE 0X7D7C
-#define GRAYBLUE 0X5458
-
-#define LIGHTGREEN 0X841F
-#define LGRAY 0XC618
-#define LGRAYBLUE 0XA651
-#define LBBLUE 0X2B12
 
 /* Control Registers and constant codes */
 #define ST7789_NOP     0x00
@@ -207,26 +186,18 @@ extern SPI_HandleTypeDef    ST7789_SPI_PORT;
 void ST7789_Init(void);
 void ST7789_SetRotation(uint8_t m);
 void ST7789_DrawPixel(uint16_t x, uint16_t y, uint16_t color);
-void ST7789_Fill(uint16_t xSta, uint16_t ySta, uint16_t xEnd, uint16_t yEnd, uint16_t color);
-void ST7789_DrawPixel_4px(uint16_t x, uint16_t y, uint16_t color);
-#define ST7789_Fill_Color(c)    ST7789_Fill(0, 0, ST7789_WIDTH - 1, ST7789_HEIGHT - 1, c)
+int8_t  ST7789_Fill(uint16_t xSta, uint16_t ySta, uint16_t xEnd, uint16_t yEnd, uint16_t color);
 
 /* Graphical functions. */
-void ST7789_DrawLine(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color);
-void ST7789_DrawRectangle(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color);
-void ST7789_DrawCircle(uint16_t x0, uint16_t y0, uint8_t r, uint16_t color);
-void ST7789_DrawImage(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *data);
+int8_t  ST7789_DrawLine(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color);
+void ST7789_DrawImage(uint16_t x, uint16_t y, uint16_t w, uint16_t h, void * data);
 void ST7789_InvertColors(uint8_t invert);
 
 /* Text functions. */
-void ST7789_WriteChar(uint16_t x, uint16_t y, char ch, FontDef font, uint16_t color, uint16_t bgcolor);
-void ST7789_WriteString(uint16_t x, uint16_t y, const char *str, FontDef font, uint16_t color, uint16_t bgcolor);
+void ST7789_PutChar(uint16_t x, uint16_t y, char ch, const UG_FONT* font, uint16_t color, uint16_t bgcolor);
+void ST7789_PutStr(uint16_t x, uint16_t y,  char *str, const UG_FONT* font, uint16_t color, uint16_t bgcolor);
 
 /* Extended Graphical functions. */
-void ST7789_DrawTriangle(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t x3, uint16_t y3, uint16_t color);
-void ST7789_DrawFilledTriangle(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t x3, uint16_t y3, uint16_t color);
-void ST7789_DrawFilledCircle(int16_t x0, int16_t y0, int16_t r, uint16_t color);
-#define ST7789_DrawFilledRectangle(x, y, w, h, c)   ST7789_Fill(x, y, x+w-1,y+h-1, c)
 /* Command functions */
 void ST7789_TearEffect(uint8_t tear);
 
