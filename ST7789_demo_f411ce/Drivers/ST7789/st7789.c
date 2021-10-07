@@ -2,6 +2,9 @@
 #include "stdio.h"
 #include "stdint.h"
 
+uint16_t lcd_width=ST7789_WIDTH;
+uint16_t lcd_height=ST7789_HEIGHT;
+
 UG_GUI gui;
 static int8_t currentSPISize=-1;
 #define mode_16bit    1
@@ -179,33 +182,6 @@ static void ST7789_SetAddressWindow(int16_t x0, int16_t y0, int16_t x1, int16_t 
   ST7789_WriteCommand(ST7789_RAMWR);
 }
 
-/**
- * @brief Draw a raw Pixel, wherever the cursor is at.
- * @param x&y -> coordinate to Draw
- * @param color -> color of the Pixel
- * @return none
- */
-void ST7789_DrawRawPixel(uint16_t color)
-{
-  //uint8_t data[2] = {color >> 8, color & 0xFF};
-  ST7789_Select();
-  HAL_SPI_Transmit(&ST7789_SPI_PORT, (uint8_t*)&color, 1, HAL_MAX_DELAY);
-  ST7789_UnSelect();
-}
-
-/**
- * @brief Set address of DisplayWindow and returns raw pixel draw for uGUI driver acceleration
- * @param xi&yi -> coordinates of window
- * @return none
- */
-
-void(*ST7789_FillArea(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1))(uint16_t){
-  ST7789_SetAddressWindow(x0,y0,x1,y1);
-  setSPI_Size(mode_16bit);                                                          // Set SPI to 16 bit
-  ST7789_DC_Set();
-  return ST7789_DrawRawPixel;
-}
-
 
 /**
  * @brief Address and draw a Pixel
@@ -213,10 +189,10 @@ void(*ST7789_FillArea(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1))(uint1
  * @param color -> color of the Pixel
  * @return none
  */
-void ST7789_DrawPixel(uint16_t x, uint16_t y, uint16_t color)
+void ST7789_DrawPixel(int16_t x, int16_t y, uint16_t color)
 {
-  if ((x < 0) || (x >= ST7789_WIDTH) ||
-     (y < 0) || (y >= ST7789_HEIGHT)) return;
+  if ((x < 0) || (x >= lcd_width) ||
+     (y < 0) || (y >= lcd_height)) return;
 
   uint8_t data[2] = {color >> 8, color & 0xFF};
 
@@ -261,6 +237,21 @@ void ST7789_FillPixels(uint16_t pixels, uint16_t color){
   }
   #endif
 }
+
+/**
+ * @brief Set address of DisplayWindow and returns raw pixel draw for uGUI driver acceleration
+ * @param xi&yi -> coordinates of window
+ * @return none
+ */
+
+void(*ST7789_FillArea(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1))(uint16_t,uint16_t){
+  ST7789_SetAddressWindow(x0,y0,x1,y1);
+  setSPI_Size(mode_16bit);                                                          // Set SPI to 16 bit
+  ST7789_DC_Set();
+  return ST7789_FillPixels;
+}
+
+
 /**
  * @brief Fill an Area with single color
  * @param xSta&ySta -> coordinate of the start point
@@ -286,11 +277,11 @@ int8_t ST7789_Fill(uint16_t xSta, uint16_t ySta, uint16_t xEnd, uint16_t yEnd, u
  */
 void ST7789_DrawImage(uint16_t x, uint16_t y, uint16_t w, uint16_t h, void* data)
 {
-  if ((x >= ST7789_WIDTH) || (y >= ST7789_HEIGHT))
+  if ((x >= lcd_width) || (y >= lcd_height))
     return;
-  if ((x + w - 1) >= ST7789_WIDTH)
+  if ((x + w - 1) >= lcd_width)
     return;
-  if ((y + h - 1) >= ST7789_HEIGHT)
+  if ((y + h - 1) >= lcd_height)
     return;
 
   ST7789_SetAddressWindow(x, y, x + w - 1, y + h - 1);
@@ -333,12 +324,12 @@ int8_t ST7789_DrawLine(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint1
   ST7789_Fill(x0,y0,x1,y1,color);               // Draw using acceleration
   return UG_RESULT_OK;
 }
-void ST7789_PutChar(uint16_t x, uint16_t y, char ch, const UG_FONT* font, uint16_t color, uint16_t bgcolor){
+void ST7789_PutChar(uint16_t x, uint16_t y, char ch, UG_FONT* font, uint16_t color, uint16_t bgcolor){
   UG_FontSelect(font);
   UG_PutChar(ch, x, y, color, bgcolor);
 }
 
-void ST7789_PutStr(uint16_t x, uint16_t y,  char *str, const UG_FONT* font, uint16_t color, uint16_t bgcolor){
+void ST7789_PutStr(uint16_t x, uint16_t y,  char *str, UG_FONT* font, uint16_t color, uint16_t bgcolor){
   UG_FontSelect(font);
   UG_SetForecolor(color);
   UG_SetBackcolor(bgcolor);
@@ -379,7 +370,7 @@ void ST7789_Init(void)
   ST7789_RST_Set();
   HAL_Delay(120);
 
-  UG_Init(&gui, &ST7789_DrawPixel, &ST7789_FillPixels, ST7789_WIDTH, ST7789_HEIGHT);
+  UG_Init(&gui, &ST7789_DrawPixel, lcd_width, lcd_height);
   UG_DriverRegister(DRIVER_DRAW_LINE, ST7789_DrawLine);
   UG_DriverRegister(DRIVER_FILL_FRAME, ST7789_Fill);
   UG_DriverRegister(DRIVER_FILL_AREA, ST7789_FillArea);
@@ -392,8 +383,8 @@ void ST7789_Init(void)
   ST7789_WriteSmallData(ST7789_COLOR_MODE_16bit);
   ST7789_WriteCommand(0xB2);        //  Porch control
   {
-    uint8_t data[] = {0x01, 0x01, 0x00, 0x11, 0x11};            // Minimum porch (7% faster screen refresh rate)   *** Restore normal value if having problems ***
-    //uint8_t data[] = {0x0C, 0x0C, 0x00, 0x33, 0x33};          // Standard porch
+    //uint8_t data[] = {0x01, 0x01, 0x00, 0x11, 0x11};            // Minimum porch (7% faster screen refresh rate)   *** Restore normal value if having problems ***
+    uint8_t data[] = {0x0C, 0x0C, 0x00, 0x33, 0x33};          // Standard porch
     ST7789_WriteData(data, sizeof(data));
   }
   ST7789_SetRotation(ST7789_ROTATION);  //  MADCTL (Display Rotation)
@@ -412,8 +403,8 @@ void ST7789_Init(void)
   ST7789_WriteCommand (0xC4);       //  VDV set
   ST7789_WriteSmallData (0x20);     //  Default value
   ST7789_WriteCommand (0xC6);       //  Frame rate control in normal mode
-  ST7789_WriteSmallData (0x01);     //  Max refresh rate (111Hz).           *** Restore normal value if having problems ***
-  //ST7789_WriteSmallData (0x0F);     //  Default refresh rate (60Hz)
+  //ST7789_WriteSmallData (0x01);     //  Max refresh rate (111Hz).           *** Restore normal value if having problems ***
+  ST7789_WriteSmallData (0x0F);     //  Default refresh rate (60Hz)
   ST7789_WriteCommand (0xD0);       //  Power control
   ST7789_WriteSmallData (0xA4);     //  Default value
   ST7789_WriteSmallData (0xA1);     //  Default value a1
@@ -440,14 +431,19 @@ void ST7789_Init(void)
 }
 
 
+#define DEFAULT_FONT FONT_arial_25X28
+
 static uint32_t draw_time=0;
+static void clearTime(void){
+  draw_time=HAL_GetTick();
+}
 static void printTime(void){
   char str[8];
   sprintf(str,"%lums",HAL_GetTick()-draw_time);
-  UG_FontSelect(&FONT_12X16);
+  UG_FontSelect(DEFAULT_FONT);
   UG_SetForecolor(C_WHITE);
   UG_SetBackcolor(C_BLACK);
-  UG_PutString(160, 119, str);
+  UG_PutString(160, 110, str);
 }
 
 /** 
@@ -457,10 +453,53 @@ static void printTime(void){
  */
 
 void window_1_callback(UG_MESSAGE *msg);
+
+#define MAX_OBJECTS 2
+
+UG_WINDOW window_1;
+UG_BUTTON button_1;
+UG_TEXTBOX textbox_1;
+UG_OBJECT obj_buff_wnd_1[MAX_OBJECTS];
+
+uint32_t vsync=150000000/60;
+uint8_t LCD_rotation = 0;
+UG_COLOR color=C_RED;
+
 void ST7789_Test(void)
 {
+  /*
+  ST7789_TearEffect(1);
+  DWT->CTRL |= 1 ;                                    // enable the counter
+  DWT->CYCCNT = 0;
+  ST7789_Fill(0,0,lcd_width-1,lcd_height-1,color);  // Fill frame
+  while(1);
+  while(1){
+    ST7789_Fill(0,0,lcd_width-1,lcd_height-1,color);  // Fill frame
+    while(DWT->CYCCNT<vsync);                         // If faster than the screen,wait the required time before start drawing the next frame
+    DWT->CYCCNT = 0;                                  // Clear timer counter
+    switch(color){
+      case C_BLACK:
+        color=C_WHITE;
+        break;
+      case C_RED:
+        color=C_GREEN;
+        break;
+      case C_GREEN:
+        color=C_BLUE;
+        break;
+      case C_BLUE:
+        color=C_RED;
+        break;
+      case C_WHITE:
+        color=C_BLACK;
+        break;
+    }
+    ST7789_WriteCommand(ST7789_MADCTL); // MADCTL
+    ST7789_WriteSmallData(LCD_rotation);
+  }
+  */
   UG_FillScreen(C_WHITE);
-  ST7789_PutStr(10, 10, "Starting Test", &FONT_12X16, C_RED, C_WHITE);
+  ST7789_PutStr(10, 10, "Starting Test", DEFAULT_FONT, C_RED, C_WHITE);
 
   HAL_Delay(1000);
   uint8_t r=0,g=0,b=0;
@@ -499,131 +538,127 @@ void ST7789_Test(void)
   HAL_Delay(500);
   UG_FillScreen(C_BLACK);
   HAL_Delay(500);
-  draw_time=HAL_GetTick();
+
+  clearTime();
   UG_FillScreen(C_WHITE);
   printTime();
-
-
-  ST7789_PutStr(10, 10, "Fill Time", &FONT_12X16, C_RED, C_WHITE);
-  HAL_Delay(2000);
+  ST7789_PutStr(10, 10, "Fill Time", DEFAULT_FONT, C_RED, C_WHITE);
+  HAL_Delay(1000);
 
   UG_FillScreen(C_BLACK);
-  ST7789_PutStr(10, 10, "Font test.", &FONT_12X16, C_AZURE, C_BLACK);
-  draw_time=HAL_GetTick();
-  ST7789_PutStr(10, 30, "Hello Steve!", &FONT_12X16, C_CYAN, C_BLACK);
-  ST7789_PutStr(10, 80, "Hello Steve!", &FONT_12X16, C_LIME_GREEN, C_BLACK);
-  ST7789_PutStr(10, 55, "Hello Steve!", &FONT_12X16, C_ORANGE_RED, C_BLACK);
-  ST7789_PutStr(10, 105, "Hello Steve!", &FONT_12X16, C_HOT_PINK, C_BLACK);
+  ST7789_PutStr(10, 10, "Font test.", DEFAULT_FONT, C_AZURE, C_BLACK);
+  clearTime();
+  ST7789_PutStr(10, 35, "Hello Steve!", DEFAULT_FONT, C_CYAN, C_BLACK);
+  ST7789_PutStr(10, 60, "Hello Steve!", DEFAULT_FONT, C_ORANGE_RED, C_BLACK);
+  ST7789_PutStr(10, 85, "Hello Steve!", DEFAULT_FONT, C_LIME_GREEN, C_BLACK);
+  ST7789_PutStr(10, 110, "Hello Steve!", DEFAULT_FONT, C_HOT_PINK, C_BLACK);
   printTime();
   HAL_Delay(3000);
+
   UG_FillScreen(C_RED);
-  ST7789_PutStr(10, 10, "Line.", &FONT_12X16, C_YELLOW, C_RED);
-  draw_time=HAL_GetTick();
-  UG_DrawLine(30, 30, 30, 100, C_WHITE);
-  UG_DrawLine(30, 30, 100, 30, C_WHITE);
-  UG_DrawLine(30, 30, 100, 100, C_WHITE);
+  ST7789_PutStr(10, 10, "Line.", DEFAULT_FONT, C_YELLOW, C_RED);
+  clearTime();
+  UG_DrawLine(30, 40, 30, 110, C_WHITE);
+  UG_DrawLine(30, 40, 100, 40, C_WHITE);
+  UG_DrawLine(30, 40, 100, 110, C_WHITE);
   printTime();
   HAL_Delay(1000);
 
   UG_FillScreen(C_RED);
-  ST7789_PutStr(10, 10, "Rect.", &FONT_12X16, C_YELLOW, C_RED);
-  draw_time=HAL_GetTick();
-  UG_DrawFrame(30, 30, 100, 100, C_WHITE);
+  ST7789_PutStr(10, 10, "Rect.", DEFAULT_FONT, C_YELLOW, C_RED);
+  clearTime();
+  UG_DrawFrame(30, 40, 100, 110, C_WHITE);
   printTime();
   HAL_Delay(1000);
 
   UG_FillScreen(C_RED);
-  ST7789_PutStr(10, 10, "Filled Rect.", &FONT_12X16, C_YELLOW, C_RED);
-  draw_time=HAL_GetTick();
-  UG_FillFrame(30, 30, 100, 100, C_WHITE);
-  printTime();
-  HAL_Delay(1000);
-
-
-  UG_FillScreen(C_RED);
-  ST7789_PutStr(10, 10, "Circle.", &FONT_12X16, C_YELLOW, C_RED);
-  draw_time=HAL_GetTick();
-  UG_DrawCircle(65, 65, 35, C_WHITE);
+  ST7789_PutStr(10, 10, "Filled Rect.", DEFAULT_FONT, C_YELLOW, C_RED);
+  clearTime();
+  UG_FillFrame(30, 40, 100, 110, C_WHITE);
   printTime();
   HAL_Delay(1000);
 
   UG_FillScreen(C_RED);
-  ST7789_PutStr(10, 10, "Filled Cir.", &FONT_12X16, C_YELLOW, C_RED);
-  draw_time=HAL_GetTick();
-  UG_FillCircle(65, 65, 35, C_WHITE);
+  ST7789_PutStr(10, 10, "Mesh.", DEFAULT_FONT, C_YELLOW, C_RED);
+  clearTime();
+  UG_DrawMesh(30, 40, 100, 110, C_WHITE);
   printTime();
   HAL_Delay(1000);
 
   UG_FillScreen(C_RED);
-  ST7789_PutStr(10, 10, "Triangle.", &FONT_12X16, C_YELLOW, C_RED);
-  draw_time=HAL_GetTick();
-  UG_DrawTriangle(30, 30, 120, 40, 60, 120, C_WHITE);
+  ST7789_PutStr(10, 10, "Circle.", DEFAULT_FONT, C_YELLOW, C_RED);
+  clearTime();
+  UG_DrawCircle(75, 75, 35, C_WHITE);
   printTime();
   HAL_Delay(1000);
 
   UG_FillScreen(C_RED);
-  draw_time=HAL_GetTick();
-  ST7789_PutStr(10, 10, "Filled Tri.", &FONT_12X16, C_YELLOW, C_RED);
-  UG_FillTriangle(30, 30, 120, 40, 60, 120, C_WHITE);
+  ST7789_PutStr(10, 10, "Filled Cir.", DEFAULT_FONT, C_YELLOW, C_RED);
+  clearTime();
+  UG_FillCircle(75, 75, 35, C_WHITE);
   printTime();
   HAL_Delay(1000);
 
   UG_FillScreen(C_RED);
-  ST7789_PutStr(10, 10, "Mesh.", &FONT_12X16, C_YELLOW, C_RED);
-  draw_time=HAL_GetTick();
-  UG_DrawMesh(30, 30, 100, 100, C_WHITE);
+  ST7789_PutStr(10, 10, "Triangle.", DEFAULT_FONT, C_YELLOW, C_RED);
+  clearTime();
+  UG_DrawTriangle(30, 40, 120, 40, 60, 120, C_WHITE);
+  printTime();
+  HAL_Delay(1000);
+
+  UG_FillScreen(C_RED);
+  clearTime();
+  ST7789_PutStr(10, 10, "Filled Tri.", DEFAULT_FONT, C_YELLOW, C_RED);
+  UG_FillTriangle(30, 40, 120, 40, 60, 120, C_WHITE);
   printTime();
   HAL_Delay(1000);
 
   UG_FillScreen(C_BLACK);
-
-  #define MAX_OBJECTS 2
-
-  UG_WINDOW window_1;
-  UG_BUTTON button_1;
-  UG_TEXTBOX textbox_1;
-  UG_OBJECT obj_buff_wnd_1[MAX_OBJECTS];
-
   // Create the window
   UG_WindowCreate(&window_1, obj_buff_wnd_1, MAX_OBJECTS, window_1_callback);
   // Window Title
-  UG_WindowSetTitleText(&window_1, "Test Window");      //  \xhh : Special CHR the ASCII value is given by hh interpreted as a hexadecimal number (Check FONT Table)
-  UG_WindowSetTitleTextFont(&window_1, &FONT_12X16);
+  UG_WindowSetTitleText(&window_1, "Test Window");
+  UG_WindowSetTitleTextFont(&window_1, DEFAULT_FONT);
+  UG_WindowSetTitleHeight(&window_1, 30);
   UG_WindowSetXStart(&window_1, 5);
   UG_WindowSetYStart(&window_1, 5);
   UG_WindowSetXEnd(&window_1, 230);       // Window 450x250
   UG_WindowSetYEnd(&window_1, 130);
 
   // Create Buttons
-  UG_ButtonCreate(&window_1, &button_1, BTN_ID_0, 10, 20, 120, 50);
+  UG_ButtonCreate(&window_1, &button_1, BTN_ID_0, 50, 5, 170, 40);
   //Label Buttons
-  UG_ButtonSetFont(&window_1,BTN_ID_0,&FONT_12X16);
+  UG_ButtonSetFont(&window_1,BTN_ID_0,DEFAULT_FONT);
   UG_ButtonSetForeColor(&window_1,BTN_ID_0, C_BLACK);
+  UG_ButtonSetBackColor(&window_1, BTN_ID_0, C_LIGHT_GRAY);
   UG_ButtonSetText(&window_1,BTN_ID_0,"Button");
 
   // Create Textbox
-  UG_TextboxCreate(&window_1, &textbox_1, TXB_ID_0, 10, 60, 200, 100);
-  UG_TextboxSetFont(&window_1, TXB_ID_0, &FONT_12X16);
-  UG_TextboxSetText(&window_1, TXB_ID_0, "Some text");
+  UG_TextboxCreate(&window_1, &textbox_1, TXB_ID_0, 10, 50, 200, 80);
+  UG_TextboxSetFont(&window_1, TXB_ID_0, DEFAULT_FONT);
+  UG_TextboxSetText(&window_1, TXB_ID_0, "Some Text");
+  UG_TextboxSetBackColor(&window_1, TXB_ID_0, C_LIGHT_YELLOW);
   UG_TextboxSetForeColor(&window_1, TXB_ID_0, C_BLACK);
   UG_TextboxSetAlignment(&window_1, TXB_ID_0, ALIGN_CENTER);
 
   UG_WindowShow(&window_1);
+  clearTime();
   UG_Update();
+  printTime();
   HAL_Delay(3000);
 
   //  If program doesn't fit in the FLASH, please disable this code:
   //->>
-  UG_FillScreen(C_RED);
-  draw_time=HAL_GetTick();
+  UG_FillScreen(0x4b10);
+  clearTime();
   UG_DrawBMP((ST7789_WIDTH-fry.width)/2, (ST7789_HEIGHT-fry.height)/2, &fry);
   printTime();
   UG_FontSetTransparency(1);
-  ST7789_PutStr(10, 10, "Image.", &FONT_12X16, C_YELLOW, C_RED);
+  ST7789_PutStr(10, 10, "Image.", DEFAULT_FONT, C_YELLOW, C_RED);
   UG_FontSetTransparency(0);
   //<<-
 
-  HAL_Delay(3000);
+  HAL_Delay(5000);
 }
 
 

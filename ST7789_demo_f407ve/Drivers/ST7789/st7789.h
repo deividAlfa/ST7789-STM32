@@ -185,7 +185,7 @@ extern SPI_HandleTypeDef    ST7789_SPI_PORT;
 /* Basic functions. */
 void ST7789_Init(void);
 void ST7789_SetRotation(uint8_t m);
-void ST7789_DrawPixel(uint16_t x, uint16_t y, uint16_t color);
+void ST7789_DrawPixel(int16_t x, int16_t y, uint16_t color);
 int8_t  ST7789_Fill(uint16_t xSta, uint16_t ySta, uint16_t xEnd, uint16_t yEnd, uint16_t color);
 
 /* Graphical functions. */
@@ -194,8 +194,8 @@ void ST7789_DrawImage(uint16_t x, uint16_t y, uint16_t w, uint16_t h, void * dat
 void ST7789_InvertColors(uint8_t invert);
 
 /* Text functions. */
-void ST7789_PutChar(uint16_t x, uint16_t y, char ch, const UG_FONT* font, uint16_t color, uint16_t bgcolor);
-void ST7789_PutStr(uint16_t x, uint16_t y,  char *str, const UG_FONT* font, uint16_t color, uint16_t bgcolor);
+void ST7789_PutChar(uint16_t x, uint16_t y, char ch, UG_FONT* font, uint16_t color, uint16_t bgcolor);
+void ST7789_PutStr(uint16_t x, uint16_t y,  char *str, UG_FONT* font, uint16_t color, uint16_t bgcolor);
 
 /* Extended Graphical functions. */
 /* Command functions */
