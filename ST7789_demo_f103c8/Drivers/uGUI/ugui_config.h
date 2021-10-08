@@ -16,7 +16,6 @@
 #define USE_UTF8
 
 /* Enable needed fonts here */
-
 //#define USE_FONT_4X16
 //#define USE_FONT_5X8
 //#define USE_FONT_5X12
@@ -27,7 +26,7 @@
 //#define USE_FONT_8X12
 //#define USE_FONT_8X12_CYRILLIC
 //#define USE_FONT_10X16
-#define USE_FONT_12X16
+//#define USE_FONT_12X16
 //#define USE_FONT_12X20
 //#define USE_FONT_16X26
 //#define USE_FONT_22X36
