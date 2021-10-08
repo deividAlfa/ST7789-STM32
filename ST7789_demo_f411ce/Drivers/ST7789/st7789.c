@@ -425,13 +425,13 @@ void ST7789_Init(void)
   ST7789_WriteCommand (ST7789_SLPOUT);  //  Out of sleep mode
   ST7789_WriteCommand (ST7789_NORON);   //  Normal Display on
 
-  UG_FillScreen(C_BLACK);             //  Fill
+  UG_FillScreen(C_BLACK);               //  Clear screen
   ST7789_WriteCommand (ST7789_DISPON);  //  Main screen turned on
 
 }
 
 
-#define DEFAULT_FONT FONT_arial_25X28
+#define DEFAULT_FONT FONT_arial_25X24
 
 static uint32_t draw_time=0;
 static void clearTime(void){
@@ -461,43 +461,8 @@ UG_BUTTON button_1;
 UG_TEXTBOX textbox_1;
 UG_OBJECT obj_buff_wnd_1[MAX_OBJECTS];
 
-uint32_t vsync=150000000/60;
-uint8_t LCD_rotation = 0;
-UG_COLOR color=C_RED;
-
 void ST7789_Test(void)
 {
-  /*
-  ST7789_TearEffect(1);
-  DWT->CTRL |= 1 ;                                    // enable the counter
-  DWT->CYCCNT = 0;
-  ST7789_Fill(0,0,lcd_width-1,lcd_height-1,color);  // Fill frame
-  while(1);
-  while(1){
-    ST7789_Fill(0,0,lcd_width-1,lcd_height-1,color);  // Fill frame
-    while(DWT->CYCCNT<vsync);                         // If faster than the screen,wait the required time before start drawing the next frame
-    DWT->CYCCNT = 0;                                  // Clear timer counter
-    switch(color){
-      case C_BLACK:
-        color=C_WHITE;
-        break;
-      case C_RED:
-        color=C_GREEN;
-        break;
-      case C_GREEN:
-        color=C_BLUE;
-        break;
-      case C_BLUE:
-        color=C_RED;
-        break;
-      case C_WHITE:
-        color=C_BLACK;
-        break;
-    }
-    ST7789_WriteCommand(ST7789_MADCTL); // MADCTL
-    ST7789_WriteSmallData(LCD_rotation);
-  }
-  */
   UG_FillScreen(C_WHITE);
   ST7789_PutStr(10, 10, "Starting Test", DEFAULT_FONT, C_RED, C_WHITE);
 
