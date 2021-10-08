@@ -27,8 +27,8 @@ static UG_S16 _UG_GetCharData(UG_CHAR encoding,  const UG_U8 **p);
 static UG_U16 _UG_DecodeUTF8(char **str);
 #endif
 
-static UG_U16 ptr_8to16(const uint8_t* p){
-  uint16_t d = *p++;
+static UG_U16 ptr_8to16(const UG_U8* p){
+  UG_U16 d = *p++;
   return ((d<<8) | *p);
 }
 
@@ -413,7 +413,7 @@ void UG_DrawTriangle( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_S16 x3, UG_
 /* Fill a triangle */
 void UG_FillTriangle( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_S16 x3, UG_S16 y3, UG_COLOR c ){
 
-  int16_t a, b, y, last;
+  UG_S16 a, b, y, last;
 
   /* Sort coordinates by Y order (y3 >= y2 >= y1) */
   if (y1 > y2) {
@@ -443,7 +443,7 @@ void UG_FillTriangle( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_S16 x3, UG_
     return;
   }
 
-  int16_t
+  UG_S16
   dx01 = x2 - x1,
   dy01 = y2 - y1,
   dx02 = x3 - x1,
@@ -758,7 +758,7 @@ UG_S16 _UG_GetCharData(UG_CHAR encoding,  const UG_U8 **p){
 
   for(;t< gui->currentFont.number_of_offsets;t++)                         // Seek through the offsets
   {
-    uint16_t curr_offset = ptr_8to16( gui->currentFont.offsets+(t*2));    // Offsets are 16-bit, splitted in 2 byte values
+    UG_U16 curr_offset = ptr_8to16( gui->currentFont.offsets+(t*2));    // Offsets are 16-bit, splitted in 2 byte values
 
     if(curr_offset&0x8000)                                          // If the offset has the MSB bit set, it means it's the a range start
     {
