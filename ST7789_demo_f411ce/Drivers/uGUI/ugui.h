@@ -25,26 +25,150 @@
 /* -- Source: http://www.mikrocontroller.net/user/show/benedikt                  -- */
 /* -------------------------------------------------------------------------------- */
 
+#ifdef USE_FONT_4X16
+extern UG_FONT FONT_4X6[];
+#endif
 
-#include "arial_6X6.h"
-#include "arial_9X9.h"
-#include "arial_9X12.h"
-#include "arial_15X15.h"
-#include "arial_15X17.h"
-#include "arial_19X20.h"
-#include "arial_19X23.h"
-#include "arial_25X24.h"
-#include "arial_25X28.h"
-#include "arial_29X29.h"
-#include "arial_29X34.h"
-#include "arial_35X34.h"
-#include "arial_35X39.h"
-#include "arial_39X40.h"
-#include "arial_39X45.h"
-#include "arial_45X45.h"
-#include "arial_45X53.h"
-#include "arial_49X49.h"
-#include "arial_49X57.h"
+#ifdef USE_FONT_5X8
+extern UG_FONT FONT_5X8[];
+#endif
+
+#ifdef USE_FONT_5X12
+extern UG_FONT FONT_5X12[];
+#endif
+
+#ifdef USE_FONT_6X8
+extern UG_FONT FONT_6X8[];
+#endif
+
+#ifdef USE_FONT_6X10
+extern UG_FONT FONT_6X10[];
+#endif
+
+#ifdef USE_FONT_7X12
+extern UG_FONT FONT_7X12[];
+#endif
+
+#ifdef USE_FONT_8X8
+extern UG_FONT FONT_8X8[];
+#endif
+
+#ifdef USE_FONT_8X12
+extern UG_FONT FONT_8X12[];
+#endif
+
+#ifdef USE_FONT_8X12_CYRILLIC
+extern UG_FONT FONT_8X12_CYRILLIC[];
+#endif
+
+#ifdef USE_FONT_10X16
+extern UG_FONT FONT_10X16[];
+#endif
+
+#ifdef USE_FONT_12X16
+extern UG_FONT FONT_12X16[];
+#endif
+
+#ifdef USE_FONT_12X20
+extern UG_FONT FONT_12X20[];
+#endif
+
+#ifdef USE_FONT_16X26
+extern UG_FONT FONT_16X26[];
+#endif
+
+#ifdef USE_FONT_22X36
+extern UG_FONT FONT_22X36[];
+#endif
+
+#ifdef USE_FONT_24X40
+extern UG_FONT FONT_24X40[];
+#endif
+
+#ifdef USE_FONT_32X53
+extern UG_FONT FONT_32X53[];
+#endif
+
+#ifdef USE_FONT_arial_6X6
+extern UG_FONT FONT_arial_6X6[];
+#endif
+
+#ifdef USE_FONT_arial_7X8
+extern UG_FONT FONT_arial_7X8[];
+#endif
+
+#ifdef USE_FONT_arial_9X9
+extern UG_FONT FONT_arial_9X9[];
+#endif
+
+#ifdef USE_FONT_arial_11X12
+extern UG_FONT FONT_arial_11X12[];
+#endif
+
+#ifdef USE_FONT_arial_15X16
+extern UG_FONT FONT_arial_15X16[];
+#endif
+
+#ifdef USE_FONT_arial_19X20
+extern UG_FONT FONT_arial_19X20[];
+#endif
+
+#ifdef USE_FONT_arial_25X24
+extern UG_FONT FONT_arial_25X24[];
+#endif
+
+#ifdef USE_FONT_arial_31X31
+extern UG_FONT FONT_arial_31X31[];
+#endif
+
+#ifdef USE_FONT_arial_45X45
+extern UG_FONT FONT_arial_45X45[];
+#endif
+
+#ifdef USE_FONT_arial_49X49
+extern UG_FONT FONT_arial_49X49[];
+#endif
+
+#ifdef USE_FONT_arial_6X6_CYRILLIC
+extern UG_FONT FONT_arial_6X6_CYRILLIC[];
+#endif
+
+#ifdef USE_FONT_arial_8X9_CYRILLIC
+extern UG_FONT FONT_arial_8X9_CYRILLIC[];
+#endif
+
+#ifdef USE_FONT_arial_9X12_CYRILLIC
+extern UG_FONT FONT_arial_9X12_CYRILLIC[];
+#endif
+
+#ifdef USE_FONT_arial_11X15_CYRILLIC
+extern UG_FONT FONT_arial_11X15_CYRILLIC[];
+#endif
+
+#ifdef USE_FONT_arial_15X18_CYRILLIC
+extern UG_FONT FONT_arial_15X18_CYRILLIC[];
+#endif
+
+#ifdef USE_FONT_arial_19X23_CYRILLIC
+extern UG_FONT FONT_arial_19X23_CYRILLIC[];
+#endif
+
+#ifdef USE_FONT_arial_25X28_CYRILLIC
+extern UG_FONT FONT_arial_25X28_CYRILLIC[];
+#endif
+
+#ifdef USE_FONT_arial_31X36_CYRILLIC
+extern UG_FONT FONT_arial_31X36_CYRILLIC[];
+#endif
+
+#ifdef USE_FONT_arial_45X52_CYRILLIC
+extern UG_FONT FONT_arial_45X52_CYRILLIC[];
+#endif
+
+#ifdef USE_FONT_arial_49X58_CYRILLIC
+extern UG_FONT FONT_arial_49X58_CYRILLIC[];
+#endif
+
 
 
 

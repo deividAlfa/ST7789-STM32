@@ -17,25 +17,43 @@
 
 /* Enable needed fonts here */
 
-#define USE_FONT_arial_6X6
-#define USE_FONT_arial_9X9
-#define USE_FONT_arial_9X12     // Includes cyrillic (UTF8 required)
-#define USE_FONT_arial_15X15
-#define USE_FONT_arial_15X17    // Includes cyrillic (UTF8 required)
-#define USE_FONT_arial_19X20
-#define USE_FONT_arial_19X23    // Includes cyrillic (UTF8 required)
-#define USE_FONT_arial_25X24
-#define USE_FONT_arial_25X28    // Includes cyrillic (UTF8 required)
-#define USE_FONT_arial_29X29
-#define USE_FONT_arial_29X34    // Includes cyrillic (UTF8 required)
-#define USE_FONT_arial_35X34
-#define USE_FONT_arial_35X39    // Includes cyrillic (UTF8 required)
-#define USE_FONT_arial_39X40
-#define USE_FONT_arial_39X45    // Includes cyrillic (UTF8 required)
-#define USE_FONT_arial_45X45
-#define USE_FONT_arial_45X53    // Includes cyrillic (UTF8 required)
-#define USE_FONT_arial_49X49
-#define USE_FONT_arial_49X57    // Includes cyrillic (UTF8 required)
+//#define USE_FONT_4X16
+//#define USE_FONT_5X8
+//#define USE_FONT_5X12
+//#define USE_FONT_6X8
+//#define USE_FONT_6X10
+//#define USE_FONT_7X12
+//#define USE_FONT_8X8
+//#define USE_FONT_8X12
+//#define USE_FONT_8X12_CYRILLIC
+//#define USE_FONT_10X16
+//#define USE_FONT_12X16
+//#define USE_FONT_12X20
+//#define USE_FONT_16X26
+//#define USE_FONT_22X36
+//#define USE_FONT_24X40
+//#define USE_FONT_32X53
+
+//#define USE_FONT_arial_6X6
+//#define USE_FONT_arial_7X8
+//#define USE_FONT_arial_9X9
+//#define USE_FONT_arial_11X12
+//#define USE_FONT_arial_15X16
+//#define USE_FONT_arial_19X20
+//#define USE_FONT_arial_25X24
+//#define USE_FONT_arial_31X31
+//#define USE_FONT_arial_45X45
+//#define USE_FONT_arial_49X49
+//#define USE_FONT_arial_6X6_CYRILLIC
+//#define USE_FONT_arial_8X9_CYRILLIC
+//#define USE_FONT_arial_9X12_CYRILLIC
+//#define USE_FONT_arial_11X15_CYRILLIC
+//#define USE_FONT_arial_15X18_CYRILLIC
+//#define USE_FONT_arial_19X23_CYRILLIC
+//#define USE_FONT_arial_25X28_CYRILLIC
+//#define USE_FONT_arial_31X36_CYRILLIC
+//#define USE_FONT_arial_45X52_CYRILLIC
+//#define USE_FONT_arial_49X58_CYRILLIC
 
 /* Specify platform-dependent integer types here */
 
