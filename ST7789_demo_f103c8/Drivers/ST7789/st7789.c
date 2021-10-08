@@ -6,6 +6,11 @@ uint16_t lcd_width=ST7789_WIDTH;
 uint16_t lcd_height=ST7789_HEIGHT;
 
 UG_GUI gui;
+UG_DEVICE device = {
+    .x_dim = ST7789_WIDTH,
+    .y_dim = ST7789_HEIGHT,
+    .pset = ST7789_DrawPixel,
+};
 static int8_t currentSPISize=-1;
 #define mode_16bit    1
 #define mode_8bit     0
@@ -98,9 +103,7 @@ static void ST7789_WriteData(uint8_t *buff, size_t buff_size)
     #ifdef USE_DMA
     if(DMA_min_Sz<=buff_size){
       HAL_SPI_Transmit_DMA(&ST7789_SPI_PORT, buff, chunk_size);
-      while(ST7789_SPI_PORT.hdmatx->State!=HAL_DMA_STATE_READY){
-        asm("nop");                                              // Fix for current STM32F1 libraries, HAL_DMA_StateTypeDef is not being declared as volatile so optimizations will break this check
-      }
+      while(HAL_DMA_GetState(ST7789_SPI_PORT.hdmatx)!=HAL_DMA_STATE_READY);
     }
     else{
       HAL_SPI_Transmit(&ST7789_SPI_PORT, buff, chunk_size, HAL_MAX_DELAY);
@@ -275,15 +278,18 @@ int8_t ST7789_Fill(uint16_t xSta, uint16_t ySta, uint16_t xEnd, uint16_t yEnd, u
  * @param data -> pointer of the Image array
  * @return none
  */
-void ST7789_DrawImage(uint16_t x, uint16_t y, uint16_t w, uint16_t h, void* data)
+void ST7789_DrawImage(uint16_t x, uint16_t y, UG_BMP* bmp)
 {
+  uint16_t w = bmp->width;
+  uint16_t h = bmp->height;
   if ((x >= lcd_width) || (y >= lcd_height))
     return;
   if ((x + w - 1) >= lcd_width)
     return;
   if ((y + h - 1) >= lcd_height)
     return;
-
+  if(bmp->bpp!=BMP_BPP_16)
+    return;
   ST7789_SetAddressWindow(x, y, x + w - 1, y + h - 1);
 
   #ifdef USE_DMA
@@ -291,7 +297,7 @@ void ST7789_DrawImage(uint16_t x, uint16_t y, uint16_t w, uint16_t h, void* data
   #else
   setSPI_Size(mode_16bit);                                                                            // Set SPI to 16 bit
   #endif
-  ST7789_WriteData((uint8_t*)data, w*h);
+  ST7789_WriteData((uint8_t*)bmp->p, w*h);
   }
 
 /**
@@ -304,18 +310,10 @@ void ST7789_DrawImage(uint16_t x, uint16_t y, uint16_t w, uint16_t h, void* data
 int8_t ST7789_DrawLine(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t color) {
 
   if(x0==x1){                                   // If horizontal
-    if(y1<y0){
-      int16_t temp = y0;
-      y0=y1;
-      y1=temp;
-    }
+    if(y0>y1) swap(y0,y1);
   }
   else if(y0==y1){                              // If vertical
-    if(x1<x0){
-      int16_t temp = x0;
-      x0=x1;
-      x1=temp;
-    }
+    if(x0>x1) swap(x0,x1);
   }
   else{                                         // Else, return fail, draw using software
     return UG_RESULT_FAIL;
@@ -370,7 +368,7 @@ void ST7789_Init(void)
   ST7789_RST_Set();
   HAL_Delay(120);
 
-  UG_Init(&gui, &ST7789_DrawPixel, lcd_width, lcd_height);
+  UG_Init(&gui, &device);
   UG_DriverRegister(DRIVER_DRAW_LINE, ST7789_DrawLine);
   UG_DriverRegister(DRIVER_FILL_FRAME, ST7789_Fill);
   UG_DriverRegister(DRIVER_FILL_AREA, ST7789_FillArea);
@@ -431,7 +429,7 @@ void ST7789_Init(void)
 }
 
 
-#define DEFAULT_FONT FONT_arial_25X24
+#define DEFAULT_FONT FONT_arial_20X23 //FONT_12X20
 
 static uint32_t draw_time=0;
 static void clearTime(void){
@@ -454,15 +452,15 @@ static void printTime(void){
 
 void window_1_callback(UG_MESSAGE *msg);
 
-#define MAX_OBJECTS 2
+#define MAX_OBJECTS 10
 
 UG_WINDOW window_1;
 UG_BUTTON button_1;
 UG_TEXTBOX textbox_1;
 UG_OBJECT obj_buff_wnd_1[MAX_OBJECTS];
-
+UG_PROGRESS pgb;
 void ST7789_Test(void)
-{
+{  
   UG_FillScreen(C_WHITE);
   ST7789_PutStr(10, 10, "Starting Test", DEFAULT_FONT, C_RED, C_WHITE);
 
@@ -585,13 +583,13 @@ void ST7789_Test(void)
   UG_WindowSetTitleText(&window_1, "Test Window");
   UG_WindowSetTitleTextFont(&window_1, DEFAULT_FONT);
   UG_WindowSetTitleHeight(&window_1, 30);
-  UG_WindowSetXStart(&window_1, 5);
-  UG_WindowSetYStart(&window_1, 5);
-  UG_WindowSetXEnd(&window_1, 230);       // Window 450x250
-  UG_WindowSetYEnd(&window_1, 130);
+  UG_WindowSetXStart(&window_1, 0);
+  UG_WindowSetYStart(&window_1, 0);
+  UG_WindowSetXEnd(&window_1, 239);
+  UG_WindowSetYEnd(&window_1, 134);
 
   // Create Buttons
-  UG_ButtonCreate(&window_1, &button_1, BTN_ID_0, 50, 5, 170, 40);
+  UG_ButtonCreate(&window_1, &button_1, BTN_ID_0, 50, 5, 170, 35);
   //Label Buttons
   UG_ButtonSetFont(&window_1,BTN_ID_0,DEFAULT_FONT);
   UG_ButtonSetForeColor(&window_1,BTN_ID_0, C_BLACK);
@@ -599,18 +597,31 @@ void ST7789_Test(void)
   UG_ButtonSetText(&window_1,BTN_ID_0,"Button");
 
   // Create Textbox
-  UG_TextboxCreate(&window_1, &textbox_1, TXB_ID_0, 10, 50, 200, 80);
+  UG_TextboxCreate(&window_1, &textbox_1, TXB_ID_0, 10, 40, 200, 65);
   UG_TextboxSetFont(&window_1, TXB_ID_0, DEFAULT_FONT);
   UG_TextboxSetText(&window_1, TXB_ID_0, "Some Text");
   UG_TextboxSetBackColor(&window_1, TXB_ID_0, C_LIGHT_YELLOW);
   UG_TextboxSetForeColor(&window_1, TXB_ID_0, C_BLACK);
   UG_TextboxSetAlignment(&window_1, TXB_ID_0, ALIGN_CENTER);
 
+  // Create progress bar
+  UG_ProgressCreate(&window_1, &pgb, PGB_ID_0, 10, 72, 200, 85);
+  UG_ProgressSetForeColor(&window_1, PGB_ID_0, C_ROYAL_BLUE);
+
+
   UG_WindowShow(&window_1);
   clearTime();
   UG_Update();
   printTime();
-  HAL_Delay(3000);
+  HAL_Delay(1000);
+  UG_WindowShow(&window_1);   // Force update
+  uint32_t time=HAL_GetTick()+3000;
+  uint8_t progress=0;
+  while(HAL_GetTick()<time){
+    HAL_Delay(20);
+    UG_ProgressSetProgress(&window_1, PGB_ID_0, progress++);
+    UG_Update();
+  }
 
   //  If program doesn't fit in the FLASH, please disable this code:
   //->>
@@ -624,6 +635,7 @@ void ST7789_Test(void)
   //<<-
 
   HAL_Delay(5000);
+
 }
 
 

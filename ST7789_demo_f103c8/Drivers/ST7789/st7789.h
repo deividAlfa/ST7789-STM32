@@ -1,7 +1,7 @@
 #ifndef __ST7789_H
 #define __ST7789_H
 
-#include <images.h>
+#include "images.h"
 #include "ugui.h"
 #include "main.h"
 
@@ -190,7 +190,7 @@ int8_t  ST7789_Fill(uint16_t xSta, uint16_t ySta, uint16_t xEnd, uint16_t yEnd, 
 
 /* Graphical functions. */
 int8_t  ST7789_DrawLine(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color);
-void ST7789_DrawImage(uint16_t x, uint16_t y, uint16_t w, uint16_t h, void * data);
+void ST7789_DrawImage(uint16_t x, uint16_t y, UG_BMP* bmp);
 void ST7789_InvertColors(uint8_t invert);
 
 /* Text functions. */
