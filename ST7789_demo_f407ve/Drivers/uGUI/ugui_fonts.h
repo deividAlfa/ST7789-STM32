@@ -7,8 +7,7 @@
 /* -------------------------------------------------------------------------------- */
 #include "ugui.h"
 /*
-  Old fonts converted to new structure. They use Code Page 850 encoding.
-  UTF-8 can be disabled if only these fonts are being used.
+  Old fonts converted to new structure. They use Code Page 850 encoding. UTF-8 can be disabled if only these fonts are being used.
   https://en.wikipedia.org/wiki/Code_page_850
 */
 
@@ -75,12 +74,10 @@ extern UG_FONT FONT_24X40[];
 #ifdef UGUI_USE_FONT_32X53
 extern UG_FONT FONT_32X53[];
 #endif
-
 /*
   New fonts. They use Unicode encoding. Can be generated with the new version of ttf2ugui
-  Accessing encodings higher than 127 require UTF-8 to be enabled, the editor must also be configured for UTF-8.
+  Accessing encodings higher than 127 () require UTF-8 enabled and set the editor settings to use that encoding.
   https://en.wikipedia.org/wiki/List_of_Unicode_characters
-  These fonts include Unicode chars 32-127, 161-255. Cyrillic adds chars 1042-1103.
 */
 #ifdef UGUI_USE_FONT_arial_6X6
 extern UG_FONT FONT_arial_6X6[];
