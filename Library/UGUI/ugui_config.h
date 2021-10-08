@@ -16,10 +16,10 @@
 // #define UGUI_USE_TOUCH
 
 /* Enable Console Support */
- #define UGUI_USE_CONSOLE
+// #define UGUI_USE_CONSOLE
 
 /* If you only use standard ASCII, disabling this will save some resources */
-#define UGUI_USE_UTF8
+// #define UGUI_USE_UTF8
 
 /* Enable needed fonts */
 #define UGUI_USE_FONT_4X16
