@@ -173,22 +173,26 @@ void UG_FillRoundFrame( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_S16 r, UG
    }
 }
 
-void UG_DrawMesh( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_COLOR c )
+void UG_DrawMesh( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_U16 spacing, UG_COLOR c )
 {
-   UG_S16 n,m;
+   UG_U16 p;
 
    if ( x2 < x1 )
      swap(x1,x2);
    if ( y2 < y1 )
      swap(y1,y2);
 
-   for( m=y1; m<=y2; m+=2 )
+   for( p=y1; p<y2; p+=spacing )
    {
-      for( n=x1; n<=x2; n+=2 )
-      {
-         gui->device->pset(n,m,c);
-      }
+     UG_DrawLine(x1, p, x2, p, c);
    }
+   UG_DrawLine(x1, y2, x2, y2, c);
+
+   for( p=x1; p<x2; p+=spacing )
+   {
+     UG_DrawLine(p, y1, p, y2, c);
+   }
+   UG_DrawLine(x2, y1, x2, y2, c);
 }
 
 void UG_DrawFrame( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_COLOR c )

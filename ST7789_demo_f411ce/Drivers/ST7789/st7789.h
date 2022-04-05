@@ -143,6 +143,10 @@ extern SPI_HandleTypeDef    ST7789_SPI_PORT;
 /* Line Address Order ('0' = LCD Refresh Top to Bottom, '1' = the opposite) */
 #define ST7789_MADCTL_ML  0x10
 /* RGB/BGR Order ('0' = RGB, '1' = BGR) */
+#define ST7789_MADCTL_BGR 0x08
+/* Latch Data Order ('0' = LCD Refresh Left to Right, '1' = the opposite) */
+#define ST7789_MADCTL_MH  0x04
+/* RGB/BGR Order ('0' = RGB, '1' = BGR) */
 #define ST7789_MADCTL_RGB 0x00
 
 #define ST7789_RDID1   0xDA

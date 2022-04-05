@@ -460,7 +460,8 @@ UG_TEXTBOX textbox_1;
 UG_OBJECT obj_buff_wnd_1[MAX_OBJECTS];
 UG_PROGRESS pgb;
 void ST7789_Test(void)
-{  
+{
+
   UG_FillScreen(C_WHITE);
   ST7789_PutStr(10, 10, "Starting Test", DEFAULT_FONT, C_RED, C_WHITE);
 
@@ -518,6 +519,17 @@ void ST7789_Test(void)
   printTime();
   HAL_Delay(3000);
 
+  /* Enable if you have at least 128KB of flash */
+/*
+
+  UG_FillScreen(C_BLACK);
+  ST7789_PutStr(10, 10, "Big font test.", DEFAULT_FONT, C_AZURE, C_BLACK);
+  clearTime();
+  ST7789_PutStr(10, 35, "Hello Steve!", FONT_arial_49X57, C_CYAN, C_BLACK);
+  printTime();
+  HAL_Delay(3000);
+*/
+
   UG_FillScreen(C_RED);
   ST7789_PutStr(10, 10, "Line.", DEFAULT_FONT, C_YELLOW, C_RED);
   clearTime();
@@ -544,7 +556,7 @@ void ST7789_Test(void)
   UG_FillScreen(C_RED);
   ST7789_PutStr(10, 10, "Mesh.", DEFAULT_FONT, C_YELLOW, C_RED);
   clearTime();
-  UG_DrawMesh(30, 40, 100, 110, C_WHITE);
+  UG_DrawMesh(30, 40, 230, 100, 5, C_WHITE);
   printTime();
   HAL_Delay(1000);
 

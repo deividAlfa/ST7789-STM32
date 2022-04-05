@@ -6,7 +6,7 @@
 #include "main.h"
 
 /* choose a Hardware SPI port to use. */
-#define ST7789_SPI_PORT     hspi2
+#define ST7789_SPI_PORT     hspi1
 extern SPI_HandleTypeDef    ST7789_SPI_PORT;
 
 /* Pin connections */
