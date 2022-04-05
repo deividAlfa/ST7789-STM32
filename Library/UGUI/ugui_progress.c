@@ -296,7 +296,7 @@ static void _UG_ProgressUpdate(UG_WINDOW* wnd, UG_OBJECT* obj)
                   // Needed to match mesh pattern, otherwise it would "scroll right" 
                   if((((obj->a_abs.xs+d) & 1) && (wps & 1)) || (!((obj->a_abs.xs+d) & 1) && !(wps & 1)))
                      xs++;
-                  UG_DrawMesh (xs, obj->a_abs.ys+d, xe, obj->a_abs.ye-d, pgb->fc);
+                  UG_DrawMesh (xs, obj->a_abs.ys+d, xe, obj->a_abs.ye-d, 2, pgb->fc);
                }
                else
                {
