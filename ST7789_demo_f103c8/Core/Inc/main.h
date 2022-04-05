@@ -58,16 +58,12 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define LCD_CS_Pin GPIO_PIN_13
-#define LCD_CS_GPIO_Port GPIOC
-#define LCD_DC_Pin GPIO_PIN_11
-#define LCD_DC_GPIO_Port GPIOB
-#define LCD_RST_Pin GPIO_PIN_12
+#define LCD_RST_Pin GPIO_PIN_7
 #define LCD_RST_GPIO_Port GPIOB
-#define LCD_SCL_Pin GPIO_PIN_13
-#define LCD_SCL_GPIO_Port GPIOB
-#define LCD_SDA_Pin GPIO_PIN_15
-#define LCD_SDA_GPIO_Port GPIOB
+#define LCD_DC_Pin GPIO_PIN_8
+#define LCD_DC_GPIO_Port GPIOB
+#define LCD_CS_Pin GPIO_PIN_9
+#define LCD_CS_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
@@ -77,5 +73,3 @@ void Error_Handler(void);
 #endif
 
 #endif /* __MAIN_H */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
