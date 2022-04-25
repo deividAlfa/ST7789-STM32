@@ -32,6 +32,9 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdio.h>
 
 /* USER CODE END Includes */
 
@@ -58,11 +61,15 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define SCK_Pin GPIO_PIN_5
+#define SCK_GPIO_Port GPIOA
+#define SDO_Pin GPIO_PIN_7
+#define SDO_GPIO_Port GPIOA
+#define LCD_DC_Pin GPIO_PIN_0
+#define LCD_DC_GPIO_Port GPIOB
 #define LCD_RST_Pin GPIO_PIN_1
 #define LCD_RST_GPIO_Port GPIOB
-#define LCD_DC_Pin GPIO_PIN_2
-#define LCD_DC_GPIO_Port GPIOB
-#define LCD_CS_Pin GPIO_PIN_10
+#define LCD_CS_Pin GPIO_PIN_2
 #define LCD_CS_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
