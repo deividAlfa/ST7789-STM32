@@ -364,7 +364,7 @@ void LCD_DrawPixelFB(int16_t x, int16_t y, uint16_t color)
 }
 #endif
 
-void LCD_FillPixels(uint16_t pixels, uint16_t color){
+void LCD_FillPixels(uint32_t pixels, uint16_t color){
 #ifdef USE_DMA
   if(pixels>DMA_min_Sz)
     LCD_WriteData((uint8_t*)&color, pixels);
@@ -418,7 +418,7 @@ void(*LCD_FillArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1))(uint16_t,uin
  */
 int8_t LCD_Fill(uint16_t xSta, uint16_t ySta, uint16_t xEnd, uint16_t yEnd, uint16_t color)
 {
-  uint16_t pixels = (xEnd-xSta+1)*(yEnd-ySta+1);
+  uint32_t pixels = (xEnd-xSta+1)*(yEnd-ySta+1);
   LCD_SetAddressWindow(xSta, ySta, xEnd, yEnd);
 #ifdef USE_DMA
     setDMAMemMode(mem_fixed, mode_16bit);
