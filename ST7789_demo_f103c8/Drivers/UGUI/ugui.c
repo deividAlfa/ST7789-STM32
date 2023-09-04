@@ -865,7 +865,7 @@ UG_S16 _UG_PutChar( UG_CHAR chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc)
    UG_U8 b,trans=gui->transparent_font,driver=(gui->driver[DRIVER_FILL_AREA].state & DRIVER_ENABLED);
    const UG_U8 * data;                              // Pointer to current char bitmap
    UG_COLOR color;
-   void(*push_pixels)(UG_U16, UG_COLOR) = NULL;
+   void(*push_pixels)(UG_SIZE, UG_COLOR) = NULL;
 
    UG_S16 actual_char_width = _UG_GetCharData(chr, &data);
    if(actual_char_width==-1)

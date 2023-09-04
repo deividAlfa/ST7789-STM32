@@ -105,9 +105,9 @@ static void setSPI_Size(int8_t size){
 
 
 #ifdef USE_DMA
-#define DMA_min_Sz    64
-#define mem_increase  1
-#define mem_fixed     0
+#define DMA_Min_Pixels    32             // Don't use DMA for small transfers? Setting this to 1 will always use DMA
+#define mem_increase      1
+#define mem_fixed         0
 
 /**
  * @brief Configures DMA/ SPI interface
@@ -209,7 +209,7 @@ static void LCD_WriteData(uint8_t *buff, size_t buff_size)
   while (buff_size > 0) {
     uint16_t chunk_size = buff_size > 65535 ? 65535 : buff_size;
 #ifdef USE_DMA
-    if(buff_size>DMA_min_Sz){
+    if(buff_size>DMA_Min_Pixels){
       HAL_SPI_Transmit_DMA(&LCD_HANDLE, buff, chunk_size);
       while(HAL_DMA_GetState(LCD_HANDLE.hdmatx)!=HAL_DMA_STATE_READY);
       if(config.dma_mem_inc==mem_increase){
@@ -252,7 +252,6 @@ static void LCD_ReadCmd(uint8_t cmd, uint8_t *data, uint8_t count)
   HAL_SPI_Receive(&LCD_HANDLE, data, count, HAL_MAX_DELAY);
   LCD_PIN(LCD_CS,SET);
 }
-
 
 /**
  * @brief Set the rotation direction of the display
@@ -364,18 +363,18 @@ void LCD_DrawPixelFB(int16_t x, int16_t y, uint16_t color)
 }
 #endif
 
-void LCD_FillPixels(uint16_t pixels, uint16_t color){
+void LCD_FillPixels(uint32_t pixels, uint16_t color){
 #ifdef USE_DMA
-  if(pixels>DMA_min_Sz)
+  if(pixels>DMA_Min_Pixels)
     LCD_WriteData((uint8_t*)&color, pixels);
   else{
 #endif
-    uint16_t fill[DMA_min_Sz];                                                                // Use a 64 pixel (128Byte) buffer for faster filling
-    for(uint8_t t=0;t<(pixels<DMA_min_Sz ? pixels : DMA_min_Sz);t++){                                 // Fill the buffer with the color
+    uint16_t fill[DMA_Min_Pixels];                                                                // Use a pixel buffer for faster filling, removes overhead.
+    for(uint32_t t=0;t<(pixels<DMA_Min_Pixels ? pixels : DMA_Min_Pixels);t++){                     // Fill the buffer with the color
       fill[t]=color;
     }
-    while(pixels){                                                                    // Send 64 pixel blocks
-      uint8_t sz = (pixels<DMA_min_Sz ? pixels : DMA_min_Sz);
+    while(pixels){                                                                                // Send 64 pixel blocks
+      uint32_t sz = (pixels<DMA_Min_Pixels ? pixels : DMA_Min_Pixels);
       LCD_WriteData((uint8_t*)fill, sz);
       pixels-=sz;
     }
@@ -389,7 +388,7 @@ void LCD_FillPixels(uint16_t pixels, uint16_t color){
  * @param xi&yi -> coordinates of window
  * @return none
  */
-void(*LCD_FillArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1))(uint16_t,uint16_t){
+void(*LCD_FillArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1))(uint32_t, uint16_t){
   if(x0==-1){
 #ifdef USE_DMA
     setDMAMemMode(mem_increase, mode_8bit);
@@ -418,7 +417,7 @@ void(*LCD_FillArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1))(uint16_t,uin
  */
 int8_t LCD_Fill(uint16_t xSta, uint16_t ySta, uint16_t xEnd, uint16_t yEnd, uint16_t color)
 {
-  uint16_t pixels = (xEnd-xSta+1)*(yEnd-ySta+1);
+  uint32_t pixels = (uint32_t)(xEnd-xSta+1)*(yEnd-ySta+1);
   LCD_SetAddressWindow(xSta, ySta, xEnd, yEnd);
 #ifdef USE_DMA
     setDMAMemMode(mem_fixed, mode_16bit);
@@ -456,11 +455,11 @@ void LCD_DrawImage(uint16_t x, uint16_t y, UG_BMP* bmp)
     return;
   LCD_SetAddressWindow(x, y, x + w - 1, y + h - 1);
 
-#ifdef USE_DMA
+  #ifdef USE_DMA
   setDMAMemMode(mem_increase, mode_16bit);                                                            // Set SPI and DMA to 16 bit, enable memory increase
-#else
+  #else
   setSPI_Size(mode_16bit);                                                                            // Set SPI to 16 bit
-#endif
+  #endif
   LCD_WriteData((uint8_t*)bmp->p, w*h);
 #ifdef USE_DMA
 setDMAMemMode(mem_increase, mode_8bit);                                                            // Set SPI and DMA to 16 bit, enable memory increase
@@ -533,6 +532,7 @@ void LCD_setPower(uint8_t power)
 static void LCD_Update(void)
 {
 #ifdef LCD_LOCAL_FB
+  setSPI_Size(mode_8bit);
   LCD_SetAddressWindow(0,0,LCD_WIDTH-1,LCD_HEIGHT-1);
   #ifdef USE_DMA
   setDMAMemMode(mem_increase, mode_16bit);                                                            // Set SPI and DMA to 16 bit, enable memory increase

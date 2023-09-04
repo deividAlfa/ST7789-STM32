@@ -3,6 +3,6 @@
 
 #include "ugui.h"
 
-extern UG_BMP sample;
+extern UG_BMP fry;
 
 #endif

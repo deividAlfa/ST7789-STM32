@@ -20,8 +20,8 @@
 #define USE_DMA                       /* Use DMA for transfers when possible */
 //#define LCD_LOCAL_FB                /* Use local framebuffer. Needs a lot of ram, but removes flickering and redrawing glitches  */
 
-#define USE_ST7735                    /* LCD Selection */
-//#define USE_ST7789
+//#define USE_ST7735                    /* LCD Selection */
+#define USE_ST7789
 
 #define LCD_ROTATION 3                /* XY rotation/mirroring. Valid values: 0...3 */
 
@@ -30,9 +30,9 @@
 //#define LCD_128X128
 //#define LCD_160X80
 #elif defined USE_ST7789              /* ST7789 LCD sizes */
-  #define LCD_135X240
+//#define LCD_135X240
 //#define LCD_240X240
-//#define LCD_240X280
+  #define LCD_240X280
 #endif
 
 
@@ -109,6 +109,8 @@
     #if (LCD_ROTATION == 0) || (LCD_ROTATION == 2)
       #define LCD_WIDTH  240
       #define LCD_HEIGHT 280
+      #define LCD_X_SHIFT 0
+      #define LCD_Y_SHIFT 0
     #elif (LCD_ROTATION == 1) || (LCD_ROTATION == 3)
       #define LCD_WIDTH  280
       #define LCD_HEIGHT 240
@@ -120,28 +122,32 @@
     #ifdef LCD_135X240
       #define LCD_X_SHIFT 53
       #define LCD_Y_SHIFT 40
-    #elif LCD_240X280
+    #elif defined LCD_240X280
     #endif
   #elif LCD_ROTATION == 1
     #define LCD_ROTATION_CMD (CMD_MADCTL_MY | CMD_MADCTL_MV | CMD_MADCTL_RGB)
     #ifdef LCD_135X240
       #define LCD_X_SHIFT 40
       #define LCD_Y_SHIFT 52
-    #elif LCD_240X280
+    #elif defined LCD_240X280
     #endif
   #elif LCD_ROTATION == 2
     #define LCD_ROTATION_CMD (CMD_MADCTL_RGB)
     #ifdef LCD_135X240
       #define LCD_X_SHIFT 52
       #define LCD_Y_SHIFT 40
-    #elif LCD_240X280
+    #elif defined LCD_240X280
+      #define LCD_X_SHIFT 20
+      #define LCD_Y_SHIFT 0
     #endif
   #elif LCD_ROTATION == 3
     #define LCD_ROTATION_CMD (CMD_MADCTL_MX | CMD_MADCTL_MV | CMD_MADCTL_RGB)
     #ifdef LCD_135X240
       #define LCD_X_SHIFT 40
       #define LCD_Y_SHIFT 53
-    #elif LCD_240X280
+    #elif defined LCD_240X280
+      #define LCD_X_SHIFT 20
+      #define LCD_Y_SHIFT 0
     #endif
   #endif
 #endif
@@ -202,7 +208,7 @@ typedef enum{
   CMD_VMCTR1     = 0xC5,
   CMD_VCMOFSET   = 0xC5,
   CMD_FRCTRL2    = 0xC6,
-  CMD_PWCTRL1     = 0xD0,
+  CMD_PWCTRL1    = 0xD0,
   CMD_RDID1      = 0xDA,
   CMD_RDID2      = 0xDB,
   CMD_RDID3      = 0xDC,
@@ -222,7 +228,6 @@ typedef enum{
 
 extern SPI_HandleTypeDef    LCD_HANDLE;
 
-void SDOconfig(uint8_t mode);
 void LCD_init(void);
 void LCD_SetRotation(uint8_t m);
 void LCD_DrawPixel(int16_t x, int16_t y, uint16_t color);

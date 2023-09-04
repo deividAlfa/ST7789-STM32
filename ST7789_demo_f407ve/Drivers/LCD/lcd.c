@@ -106,7 +106,7 @@ static void setSPI_Size(int8_t size){
 
 
 #ifdef USE_DMA
-#define DMA_min_Sz    64
+#define DMA_min_Sz    1             // Always uses DMA
 #define mem_increase  1
 #define mem_fixed     0
 
@@ -365,7 +365,7 @@ void LCD_DrawPixelFB(int16_t x, int16_t y, uint16_t color)
 }
 #endif
 
-void LCD_FillPixels(uint16_t pixels, uint16_t color){
+void LCD_FillPixels(uint32_t pixels, uint16_t color){
 #ifdef USE_DMA
   if(pixels>DMA_min_Sz)
     LCD_WriteData((uint8_t*)&color, pixels);
@@ -390,7 +390,7 @@ void LCD_FillPixels(uint16_t pixels, uint16_t color){
  * @param xi&yi -> coordinates of window
  * @return none
  */
-void(*LCD_FillArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1))(uint16_t,uint16_t){
+void(*LCD_FillArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1))(uint32_t, uint16_t){
   if(x0==-1){
 #ifdef USE_DMA
     setDMAMemMode(mem_increase, mode_8bit);
@@ -419,7 +419,7 @@ void(*LCD_FillArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1))(uint16_t,uin
  */
 int8_t LCD_Fill(uint16_t xSta, uint16_t ySta, uint16_t xEnd, uint16_t yEnd, uint16_t color)
 {
-  uint16_t pixels = (xEnd-xSta+1)*(yEnd-ySta+1);
+  uint32_t pixels = (uint32_t)(xEnd-xSta+1)*(yEnd-ySta+1);
   LCD_SetAddressWindow(xSta, ySta, xEnd, yEnd);
 #ifdef USE_DMA
     setDMAMemMode(mem_fixed, mode_16bit);
@@ -901,7 +901,6 @@ void LCD_Test(void)
 
 static void window_1_callback(UG_MESSAGE *msg)
 {
-  asm("nop");
 /*
     if(msg->type == MSG_TYPE_OBJECT)
     {

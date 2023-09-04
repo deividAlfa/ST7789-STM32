@@ -73,6 +73,7 @@
 
 typedef uint8_t      UG_U8;
 typedef int8_t       UG_S8;
+typedef size_t       UG_SIZE;
 typedef uint16_t     UG_U16;
 typedef int16_t      UG_S16;
 typedef uint32_t     UG_U32;
