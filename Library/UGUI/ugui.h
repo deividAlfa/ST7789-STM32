@@ -127,7 +127,7 @@ typedef struct
    UG_U8        char_height;
    UG_U16       bytes_per_char;
    UG_U16       number_of_chars;
-   UG_U16       number_of_offsets;
+   UG_U16       offset_size;
    const UG_U8  * widths;
    const UG_U8  * offsets;
    const UG_U8  * data;
