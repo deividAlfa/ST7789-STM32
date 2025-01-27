@@ -28,10 +28,17 @@ static UG_U16 _UG_DecodeUTF8(char **str);
 #endif
 
 static UG_U16 ptr_8to16(const UG_U8* p){
-  UG_U16 d = *p++;
-  return ((d<<8) | *p);
+  return ( ((UG_U16)p[0]<<8) | p[1]);
+}
+/*
+static UG_U32 ptr_8to24(const UG_U8* p){
+  return ( ((UG_U32)p[0]<<16) | ((UG_U32)p[1]<<8) | p[2]);
 }
 
+static UG_U32 ptr_8to32(const UG_U8* p){
+  return ( ((UG_U32)p[0]<<24) | ((UG_U32)p[1]<<16) | ((UG_U32)p[2]<<8) | p[3]);
+}
+*/
 
 static const UG_COLOR pal_window[] = {
     C_PAL_WINDOW
@@ -60,7 +67,7 @@ UG_S16 UG_Init( UG_GUI* g, UG_DEVICE *device )
    g->currentFont.char_height = 0;
    g->currentFont.char_width = 0;
    g->currentFont.number_of_chars = 0;
-   g->currentFont.number_of_offsets = 0;
+   g->currentFont.offset_size = 0;
    g->currentFont.widths = NULL;
    g->currentFont.offsets = NULL;
    g->currentFont.data = NULL;
@@ -171,6 +178,7 @@ void UG_FillRoundFrame( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_S16 r, UG
      }
      x++;
    }
+  //UG_DrawRoundFrame(x1, y1, x2, y2, r, c );
 }
 
 void UG_DrawMesh( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_U16 spacing, UG_COLOR c )
@@ -743,21 +751,15 @@ UG_S16 _UG_GetCharData(UG_CHAR encoding,  const UG_U8 **p){
   static UG_S16 last_width;
   static const UG_U8 * last_p;
   static UG_FONT * last_font;
-  UG_U16 start=0;
-  UG_U16 skip=0;
-  UG_U16 t=0;
-  UG_U8 range=0;
-  UG_U8 found=0;
+  const UG_U8 * offset = gui->currentFont.offsets;
+  UG_U16 char_start=0, char_stop=0, skip=0;
 
   if( gui->currentFont.font==last_font && encoding==last_encoding){       // If called with the same arguments, return cached data
-    if(p){
-      *p=last_p;                                                    // Load char bitmap address
-    }
-    return last_width;
+    if(p) *p=last_p;                                                      // Load char bitmap address if available. Sometimes called with null p to get only the cached width.
+    return last_width;                                                    // Return width.
   }
-
   if( gui->currentFont.is_old_font){                                      // Compatibility with old fonts charset
-    switch ( encoding )
+    switch (encoding)
     {
        case 0xF6: encoding = 0x94; break; // ö
        case 0xD6: encoding = 0x99; break; // Ö
@@ -770,63 +772,45 @@ UG_S16 _UG_GetCharData(UG_CHAR encoding,  const UG_U8 **p){
     }
   }
 
-  for(;t< gui->currentFont.number_of_offsets;t++)                         // Seek through the offsets
+
+  while(1)                                                                  // Seek through the offsets
   {
-    UG_U16 curr_offset = ptr_8to16( gui->currentFont.offsets+(t*2));    // Offsets are 16-bit, splitted in 2 byte values
-
-    if(curr_offset&0x8000)                                          // If the offset has the MSB bit set, it means it's the a range start
+    UG_U8 offset_type = *offset++;                                          // Fist byte indicates offset type: single char, range start, offset end
+    if(offset_type == 0xFF)
+      break;                                                                // Offset table end
+    char_start = ptr_8to16(offset);
+    offset+=2;
+    if(offset_type == 0)                                                    // Single char offset
     {
-      start=curr_offset&0x7FFF;                                     // Store range start
-      range=1;                                                      // Set flag
+      if(encoding==char_start)
+        break;                                                              // Matching the current offset char
+      else if (encoding<char_start)
+        return -1;                                                          // If the encoding is lower than current range, the char is not in the font
+      skip++;                                                               // Else, increase skip and keep searching
     }
-    else if(range)                                                  // If range previously set, this is the range end
-    {
-      if(encoding>=start && encoding<=curr_offset)            // If the encoding is between the range
+    else if(offset_type==1){
+      char_stop =  ptr_8to16(offset);
+      offset+=2;
+      if(encoding>=char_start && encoding<=char_stop)                       // If the encoding is between the range
       {
-        skip += (encoding-start);                             // Calculate the skip value
-        found=1;
+        skip += (encoding-char_start);                                      // Calculate the skip value
         break;
       }
-      else if(encoding<start)                                 // If the encoding is lower than current range start, the char is not in the font
-        break;
-
-      skip += ((curr_offset-start)+1);                        // Encoding not found in the current range, increase skip size and clear range flasg
-      range=0;
-    }
-    else                                                            // Range not set, this is a single char offset
-    {
-      if(encoding==curr_offset)                                     // If matching the current offset char
-      {
-        found=1;
-        break;
-      }
-      else if (encoding<curr_offset)                                // If the encoding is lower than current range, the char is not in the font
-      {
-        break;
-      }
-      skip++;                                                       // Else, increase skip and keep searching
+      else if(encoding<char_start)
+        return -1;                                                          // If the encoding is lower than current range start, the char is not in the font
+      skip += (char_stop-char_start)+1;                                     // Encoding not found in the current range, increase skip size and clear range flasg
     }
   }
-
-  if(found)                                                         // If char found
-  {
-    last_font =  gui->currentFont.font;                                     // Update cached data
-    last_encoding = encoding;
-    last_p = ( gui->currentFont.data+(skip* gui->currentFont.bytes_per_char));
-    if( gui->currentFont.widths){                                                // If width table available
-      last_width = *( gui->currentFont.widths+skip);                        // Use width from table
-    }
-    else{
-      last_width =  gui->currentFont.char_width;                            // Else use width from char width
-    }
-
-
-    if(p){
-      *p=last_p;                                                    // Load char bitmap address
-    }
-    return(last_width);                                             // Return char width
-  }
-  return -1;                                                        // -1 = char not found
+  last_font =  gui->currentFont.font;                                       // Update cached data
+  last_encoding = encoding;
+  last_p = ( gui->currentFont.data+(skip*gui->currentFont.bytes_per_char));
+  if( gui->currentFont.widths)                                              // If width table available
+    last_width = *( gui->currentFont.widths+skip);                          // Use width from table
+  else
+    last_width =  gui->currentFont.char_width;                              // Else use width from char width
+  if(p)
+    *p=last_p;                                                              // Load char bitmap address
+  return(last_width);                                                       // Return char width
 }
 
 /*
@@ -835,27 +819,28 @@ UG_S16 _UG_GetCharData(UG_CHAR encoding,  const UG_U8 **p){
 void _UG_FontSelect( UG_FONT *font){
   if( gui->currentFont.font==font)
     return;
-   gui->currentFont.font = font;                          // Save Font pointer
-   gui->currentFont.font_type = 0x7F & *font;             // Byte    0: Font_type
-   gui->currentFont.is_old_font = (0x80 & *font++)&&1;    // Byte    0: Bit 7 indicates old or new font type. 1=old font, 0=new font
-   gui->currentFont.char_width = *font++;                 // Byte    1: Char width
-   gui->currentFont.char_height = *font++;                // Byte    2: Char height
-   gui->currentFont.number_of_chars = ptr_8to16(font);    // Bytes 3+4: Number of chars
+
+  gui->currentFont.font = font;                           // Save Font pointer
+  gui->currentFont.char_width = *font++;                  // Byte    0: Char width
+  gui->currentFont.char_height = *font++;                 // Byte    1: Char height
+  gui->currentFont.number_of_chars = ptr_8to16(font);     // Bytes 2+3: Number of chars
   font+=2;
-   gui->currentFont.number_of_offsets = ptr_8to16(font);  // Bytes 5+6: Number of offsets
+  gui->currentFont.offset_size = ptr_8to16(font);         // Bytes 4+5: Offset table size
   font+=2;
-   gui->currentFont.bytes_per_char = ptr_8to16(font);     // Bytes 7+8: Bytes per char
-  font+=2;
-  if(*font++){                                    // Byte 9: 1=Width table present, 0=not present
-     gui->currentFont.widths = font;                      // Save pointer to width table
+  gui->currentFont.bytes_per_char = ptr_8to16(font);      // Bytes 6+7: Bytes per char
+  font+=2;                                                // Byte 8: Flags
+  gui->currentFont.font_type = *font & 0x1F;              // Bits 4: Font BPP
+  gui->currentFont.is_old_font = *font & 0x80;            // Bit 7:  1=old font, 0=new font
+  if(*font++ & 0x40){                                     // Bit 6: 1=Width table present, 0=not present
+    gui->currentFont.widths = font;                       // Save pointer to width table
     font+= gui->currentFont.number_of_chars;              // Increase number of chars
   }
   else{
      gui->currentFont.widths = NULL;                      // No width table
   }
-   gui->currentFont.offsets = font;                       // Save pointer to offset table
-  font += ( gui->currentFont.number_of_offsets*2);        // Increase pointer by number of offsets*2 (2-byte values)
-   gui->currentFont.data = font;                          // Save pointer to bitmap data
+  gui->currentFont.offsets = font;                        // Save pointer to offset table
+  font += gui->currentFont.offset_size;                   // Skip offset table
+  gui->currentFont.data = font;                           // Save pointer to bitmap data
 }
 
 UG_S16 _UG_PutChar( UG_CHAR chr, UG_S16 x, UG_S16 y, UG_COLOR fc, UG_COLOR bc)
