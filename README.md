@@ -1,5 +1,5 @@
 # Driver for ST7789 displays using STM32 and uGUI library.
-Using STM32's Hardware SPI to drive a ST7789 based IPS display.<br>
+Using STM32's Hardware SPI to drive a ST7789 or ST7735 display.<br>
 Forked from [Floyd-Fish](https://github.com/Floyd-Fish/ST7789-STM32)<br>
 Added my modified [uGUI](https://github.com/deividalfa/UGUI) version.<br>
 This fork is a lot faster, specially on filling with the DMA (13x faster).<br>
