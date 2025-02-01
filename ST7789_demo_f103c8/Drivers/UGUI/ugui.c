@@ -178,7 +178,6 @@ void UG_FillRoundFrame( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_S16 r, UG
      }
      x++;
    }
-  //UG_DrawRoundFrame(x1, y1, x2, y2, r, c );
 }
 
 void UG_DrawMesh( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_U16 spacing, UG_COLOR c )
@@ -223,7 +222,7 @@ void UG_DrawRoundFrame( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_S16 r, UG
      swap(x1,x2);
    if ( y2 < y1 )
      swap(y1,y2);
-
+   if(r) r++;               // Fix for corner radius looking weird, this makes the same outline as UG_FillRoundFrame
    if ( r > x2 ) return;
    if ( r > y2 ) return;
 
@@ -829,8 +828,8 @@ void _UG_FontSelect( UG_FONT *font){
   font+=2;
   gui->currentFont.bytes_per_char = ptr_8to16(font);      // Bytes 6+7: Bytes per char
   font+=2;                                                // Byte 8: Flags
-  gui->currentFont.font_type = *font & 0x1F;              // Bits 4: Font BPP
-  gui->currentFont.is_old_font = *font & 0x80;            // Bit 7:  1=old font, 0=new font
+  gui->currentFont.font_type = *font & 0x3F;              // Bits 5-0: Font BPP
+  gui->currentFont.is_old_font = (*font & 0x80)&&1;       // Bit 7:  1=old font, 0=new font
   if(*font++ & 0x40){                                     // Bit 6: 1=Width table present, 0=not present
     gui->currentFont.widths = font;                       // Save pointer to width table
     font+= gui->currentFont.number_of_chars;              // Increase number of chars
