@@ -13,4 +13,4 @@ Configuration is done in lcd.h <br>
 
 For more information, check the [Original ST7789 project](https://github.com/Floyd-Fish/ST7789-STM32) and [uGUI](https://github.com/achimdoebler/UGUI) page.<br>
 To convert fonts, use my modified [ttf2uGUI](https://github.com/deividalfa/ttf2ugui) version. I've also compiled it for windows (ttf2ugui-win.zip).<br>
-Bitmaps can be converted with[Lcd image converter](https://sourceforge.net/projects/lcd-image-converter/), use 16 bit packing, Little endian.<br>
+Bitmaps can be converted with [Lcd image converter](https://sourceforge.net/projects/lcd-image-converter/), use 16 bit packing, Little endian.<br>
