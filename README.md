@@ -6,10 +6,10 @@ This fork is a lot faster, specially on filling with the DMA (13x faster).<br>
 Everything has been optimized, font drawing is also a lot better due pixel packing, counts the same-color consecutive pixels,
 then draw them in a single operation, thus removing a lot of overhead.<br>
 The projects works right away, use STM32 CUBE IDE (Import... Exiting project... Select any of the demos).<br>
-Tested on STM32F103 and STM32F411, using a 135x240 4-wire SPI screen.<br>
+Tested on STM32F103 and STM32F411, using a 135x240 4-wire SPI screen and others.<br>
 It can achieve 60FPS with 32MHZ SPI clock.<br>
 
-Configuration is done in st7780.h <br>
+Configuration is done in lcd.h <br>
 
 For more information, check the [Original ST7789 project](https://github.com/Floyd-Fish/ST7789-STM32) and [uGUI](https://github.com/achimdoebler/UGUI) page.<br>
 To convert fonts, use my modified [ttf2uGUI](https://github.com/deividalfa/ttf2ugui) version. I've also compiled it for windows (ttf2ugui-win.zip).<br>
